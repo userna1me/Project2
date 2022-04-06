@@ -1,6 +1,6 @@
-﻿var x "hello"				# String x = "hello";
-var y true				# boolean y = true;
-var z 900					# int z = 900;
+﻿var x is "hello"			# String x = "hello";
+var y is true				# boolean y = true;
+var z is 900				# int z = 900;
 
 
 z is z plus 99				# z = z + 99;
