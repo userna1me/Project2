@@ -26,6 +26,17 @@ else
 
 print args[1] 				# translator automatically generates header:   public static void main(String args[])
 
+<print> ::= print "<string>" | print <string>
+<var_assign> ::= var <string> is <val>
+
+<val> ::= <int> |<bool> | "<string>"
+
+<string> ::= <char> | <char><string>
+<char> ::= all ASCII chars
+<int> ::= <digit> | <digit><int>
+<digit> ::= 0|1|2|3|4|5|6|7|8|9
+<bool> ::= true|false
+
 
 # additional:
 # more loops (while)
