@@ -19,21 +19,23 @@ public class translator {
 		
 	}
 	
+	/***
+	 * Given the filepath, reads a file
+	 * and returns a list of the lines from the file.
+	 */
 	private static List<String> readFile(String filename) {
 		List<String> fileContents = new ArrayList<>();
 		try {
-			
 			File f = new File(filename);
 			Scanner s = new Scanner(f);
 			while(s.hasNextLine()) {
 				String line = s.nextLine();
 				fileContents.add(line);
 			}
-			
+			s.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-		
 		return fileContents;
 	}
 	
