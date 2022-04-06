@@ -2,16 +2,17 @@
 var y is true				# boolean y = true;
 var z is 900				# int z = 900;
 
-
 z is z plus 99				# z = z + 99;
-z is / 3					# z = z / 3;   	|| 	z /= 3;		choose one
+z is / 3				# z = z / 3;   	|| 	z /= 3;		choose one
 z is 6					# z = 6;
-z is % 2					# z = z % 2;	||	z %= 2;		choose one
-y is false					# y = false;
+z is % 2				# z = z % 2;	||	z %= 2;		choose one
+y is false				# y = false;
 for 900					# for (int INDEX1 = 0; INDEX1 < 900; INDEX1++)
 	# do 900 times
-for z						# for (int INDEX2 = z; INDEX2 < z; INDEX2++)
+for z					# for (int INDEX2 = z; INDEX2 < z; INDEX2++)
 	# do z times
+while true				# while (true) {}
+	# do something
 
 print z					# System.out.println(z);
 print "test"				# System.out.println("test");
