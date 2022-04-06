@@ -1,7 +1,7 @@
 ﻿var x "hello"				# String x = "hello";
 var y true				# boolean y = true;
 var z 900					# int z = 900;
-var a b c 12 false "test"		# int a = 12; boolean b = false; String c = "test"		?
+
 
 z is z plus 99				# z = z + 99;
 z is / 3					# z = z / 3;   	|| 	z /= 3;		choose one
