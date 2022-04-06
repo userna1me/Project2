@@ -16,6 +16,12 @@ for z						# for (int INDEX2 = z; INDEX2 < z; INDEX2++)
 print z					# System.out.println(z);
 print "test"				# System.out.println("test");
 
+if z is 0
+	# block
+else if y < q
+	# block
+else
+	# block
 
 print args[1] 				# translator automatically generates header:   public static void main(String args[])
 
