@@ -23,14 +23,30 @@ else if y < q
 	# block
 else
 	# block
+	
+==, <=, >=, !=
 
 print args[1] 				# translator automatically generates header:   public static void main(String args[])
 
+<expr> ::= <print> | <var_assign> | <loop> | <condition>
+
+<condition> ::= if <bool_expr> <nested_expr> | else if <bool_expr> <nested_expr> | else <nested_expr>
+
+	print 1
+
+if x=y
+	print 1
+
+
+
+<bool_expr> ::=
+
+
+<nested_expr> ::= <indentation><expr> | <indentation><nested_expr>
+<indentation> ::= 	
 <print> ::= print "<string>" | print <string>
 <var_assign> ::= var <string> is <val>
-
 <val> ::= <int> |<bool> | "<string>"
-
 <string> ::= <char> | <char><string>
 <char> ::= all ASCII chars
 <int> ::= <digit> | <digit><int>
