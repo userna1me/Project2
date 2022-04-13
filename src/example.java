@@ -33,7 +33,7 @@ public class example {
 			match = match && varDecList(m.group(1));
 			match = match && valList(m.group(2));
 		}
-		printMsg(match, "<var_assign>", cmd, "variable assignment statement");
+		printMsg(match, "<v,ar_assign>", cmd, "variable assignment statement");
 		return match;
 	}
 	

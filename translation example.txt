@@ -2,6 +2,8 @@
 everything is separated by space
 not rule for variable assignment other than that it can't be only number
 
+only one way to comment: #
+
 var x is "hello"			# String x = "hello";
 var y is true				# boolean y = true;
 var z is 900				# int z = 900;
