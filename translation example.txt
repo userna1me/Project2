@@ -1,21 +1,33 @@
-﻿var x is "hello"			# String x = "hello";
+﻿java as translator
+everything is separated by space
+not rule for variable assignment other than that it can't be only number
+
+var x is "hello"			# String x = "hello";
 var y is true				# boolean y = true;
 var z is 900				# int z = 900;
+var a is z + 1
+var a b is 500 true
+var a b c is "ab" 50		# a = "ab", b = c = 50
+var a b is x false 50		# a = x, b = false
 
-z is z plus 99				# z = z + 99;
-z is / 3				# z = z / 3;   	|| 	z /= 3;		choose one
-z is 6					# z = 6;
-z is % 2				# z = z % 2;	||	z %= 2;		choose one
-y is false				# y = false;
-for 900					# for (int INDEX1 = 0; INDEX1 < 900; INDEX1++)
-	# do 900 times
-for z					# for (int INDEX2 = z; INDEX2 < z; INDEX2++)
-	# do z times
-while true				# while (true) {}
-	# do something
+#invalid	var x y is 1 2
+#invalid	var = is a
+#invalid	var is is "a"
 
-print z					# System.out.println(z);
-print "test"				# System.out.println("test");
+# has to be already declared variable
+z is z + 99					# z = z + 99;
+z is + 3					# this kind has to be single varialbe
+z is / 3					# z = z / 3;   	|| 	z /= 3;		choose one
+z is 6						# z = 6;
+z is % 2					# z = z % 2;	||	z %= 2;		choose one
+y is false					# y = false;
+
+x == y
+x != y
+x >= y
+x <= y
+x != y and x != z
+x == a or x == b
 
 if z is 0
 	# block
@@ -23,39 +35,69 @@ else if y < q
 	# block
 else
 	# block
-	
-==, <=, >=, !=
 
+for 900						# for (int INDEX1 = 0; INDEX1 < 900; INDEX1++)
+	# do 900 times
+for z						# for (int INDEX2 = z; INDEX2 < z; INDEX2++)
+	# do z times
+for 1.5
+	# do something floor(1.5) times
+while true					# while (true) {}
+	# do something
+while x == y
+
+print z						# System.out.println(z);
+print "test"				# System.out.println("test");
 print args[1] 				# translator automatically generates header:   public static void main(String args[])
+print x == y				# System.out.println(x == y);
 
-<expr> ::= <print> | <var_assign> | <loop> | <condition>
+<expr> ::= <print> | <var_assign> | <loop> | <if_stat> | <nested_expr>
+<nested_expr> ::= 	<expr> | 	<nested_expr>
 
-<condition> ::= if <bool_expr> <nested_expr> | else if <bool_expr> <nested_expr> | else <nested_expr>
-
-	print 1
-
-if x=y
-	print 1
-
-
-
-<bool_expr> ::=
-
-
-<nested_expr> ::= <indentation><expr> | <indentation><nested_expr>
-<indentation> ::= 	
-<print> ::= print "<string>" | print <string>
-<var_assign> ::= var <string> is <val>
-<val> ::= <int> |<bool> | "<string>"
+<print> ::= print "<string>" | print <var> | print <bool_expr> | print <math_expr>
 <string> ::= <char> | <char><string>
 <char> ::= all ASCII chars
+
+<var> ::= <string> | <num> | <bool>
+
+<bool_expr> ::= <bool_expr> and <bool_expr1> | <bool_expr> or <bool_expr1> | <bool_expr1>
+<bool_expr1> ::= <bool_expr1> == <bool_base> | <bool_expr1> != <bool_base> 
+				| <bool_expr1> <= <bool_base> | <bool_expr1> > <bool_base> 
+				| <bool_expr1> < <bool_base> | <bool_expr1> > <bool_base>
+<bool_base> ::= <var> | (<bool_expr>)
+
+<math_expr> ::= <math_expr> + <math_expr1> | <math_expr> - <math_expr1> | <math_expr1>
+<math_expr1> ::= <math_expr1> * <neg> | <math_expr1> / <neg> 
+				 | <math_expr1> % <neg> | <neg>
+<neg> ::= <math_base> | -<math_base>
+<math_base> ::= <num> | <var> | (<math_expr>)
+
+<var_assign> ::= var <var_list> is <val_list> | <var_list> is <val_list> | 
+				var <var_list> is <math_expr> | <var_list> is <math_expr>
+				var <var_list> is <bool_expr> | <var_list> is <bool_expr>
+				<var> is <math_symbol> <num>
+<var_list> ::= <var> | <var> <var_list>
+<val_list> ::= <val> | <val> <val_list>
+<val> ::= <var> | "<string>"
+
+<if_stat> ::= if <bool_expr> | else if <bool_expr> | els
+
+<loop> ::= for <string> | for <num> | while <bool_expr>
+
+<math_symbol> ::= +|-|*|/|%
+<num> ::= <int> | <real>
 <int> ::= <digit> | <digit><int>
+<real> ::= <int>.<int>
 <digit> ::= 0|1|2|3|4|5|6|7|8|9
 <bool> ::= true|false
 
 
 # additional:
-# more loops (while)
+# interactive system
+# explicit parsing
+# block scoping
+# typing system
+# explicit error handling
 # switch case?
 # multiple functions?
-# explicit error handling
+
