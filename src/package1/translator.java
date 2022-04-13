@@ -8,14 +8,12 @@ import java.util.Scanner;
 
 public class translator {
 	
-	public static void main(String args[]) {
-		
+	public static void main(String args[]) {	
 		// read input file
-		// translate it
-		// produce output file
-		
 		List<String> fileContents = readFile(args[0]); // assuming args[0] is input filename
 		
+		// translate it
+		// produce output file
 		
 	}
 	
