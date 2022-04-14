@@ -1,8 +1,11 @@
 ﻿java as translator
-everything is separated by space
+everything is separated by space, multiple spaces allowed
 not rule for variable assignment other than that it can't be only number
 
 only one way to comment: #
+
+variable name has to start with letter and can only contain letter
+digit and _
 
 var x is "hello"			# String x = "hello";
 var y is true				# boolean y = true;
@@ -72,7 +75,7 @@ print x == y				# System.out.println(x == y);
 <math_expr1> ::= <math_expr1> * <neg> | <math_expr1> / <neg> 
 				 | <math_expr1> % <neg> | <neg>
 <neg> ::= <math_base> | -<math_base>
-<math_base> ::= <num> | <var> | (<math_expr>)
+<math_base> ::= <num> | <string> | (<math_expr>)
 
 <var_assign> ::= var <var_list> is <val_list> | <var_list> is <val_list> | 
 				var <var_list> is <math_expr> | <var_list> is <math_expr>

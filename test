@@ -1,8 +1,8 @@
-If a == b
-	a = 1
-	b = 2
-else 
-	a = 2
-	b = 1
-	if x != y
-		print 1
+# print 123
+# print 123.0123
+# print .213
+# print 5679.3546
+# print 5679,5646
+# print true
+# print false
+print "abcde"
