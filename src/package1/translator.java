@@ -72,10 +72,10 @@ public class translator {
 					System.exit(1);
 				}
 				
-				//System.out.println(javaCodes.get(i));
+				System.out.println(javaCodes.get(i));
 				//System.out.println(nested);
-				//System.out.println("------------");
-				//System.out.print(explictParsing.get(i));
+				System.out.println("------------");
+				System.out.print(explictParsing.get(i));
 				
 			} else {
 				javaCodes.add("//" + code.substring(1));
