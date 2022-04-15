@@ -4,28 +4,33 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
-import java.util.regex.Pattern;
 
 public class translator {
 	private static HashMap<String, Object> globalVariables;
 	private static int nested = 0;
 	
+	private static ArrayList<Deque<String>> nestedStack;
+	
 	public static void main(String args[]) {
 		// read input file, assuming args[0] is input filename
 		if (args[0] != null) {
 			ArrayList<String> fileContents = readFile(args[0]);
+			globalVariables = new HashMap<String, Object>();
+			nestedStack = new ArrayList<Deque<String>>();
 			
 			// translate it
 			ArrayList<String> javaCodes = compile(fileContents);
 			
-			// produce output file
-			writeOutputFile(javaCodes);
 			
-		// interactive system? 
+			// produce output file
+			//writeOutputFile(javaCodes);
+			
+		// TODO interactive system? 
 		} else {
 			Scanner input = new Scanner(System.in);
 			String cmd = input.nextLine();
@@ -38,9 +43,7 @@ public class translator {
 	}
 	
 	private static boolean parse(String line) {
-		String[] parsed = expr(line, globalVariables);
-		
-		
+		String[] parsed = expr(line, globalVariables, false);
 		
 		return false;
 	}
@@ -51,48 +54,59 @@ public class translator {
 		
 		for (int i = 0; i < codes.size(); i++) {
 			String code = codes.get(i);
-			if (code.trim().charAt(0) != '#') {
-				String[] temp = expr(code, globalVariables);
+			String trimed = code.trim();
+			if (trimed.length() == 0) continue;
+			if (trimed.charAt(0) != '#') {
+				String[] temp = expr(code, globalVariables, false);
 				if (temp[0] != null) {
 					javaCodes.add(temp[0]);
 					explictParsing.add(temp[1]);
 				} else {
-					System.err.print("[At line " + i +"] ");
+					System.err.print("[At line " + (i+1) +"] ");
 					System.err.print(temp[1]);
 					System.exit(1);
 				}
+				
+				//System.out.println(javaCodes.get(i));
+				//System.out.println(nested);
+				//System.out.println("------------");
+				//System.out.print(explictParsing.get(i));
+				
 			} else {
 				javaCodes.add("//" + code.substring(1));
 				explictParsing.add("<commemt>: " + code + "\n");
 			}
 		}
+		if (nested != 0) {
+			String temp = javaCodes.get(javaCodes.size()-1);
+			temp += "}";
+			javaCodes.remove(javaCodes.size()-1);
+			javaCodes.add(temp);
+		}
+		
+		System.out.println("+++");
+		for (String code: javaCodes) System.out.println(code);
 		
 		return javaCodes;
 	}
 	
-	private static String[] expr(String line, HashMap<String, Object> variables) {
+	private static String[] expr(String line, HashMap<String, Object> variables, boolean fromNested) {
+		if (!fromNested) {
+			String[] nestedResult = nestedExpr(line, variables);
+			if (nestedResult[0] != null) return nestedResult;
+		}
+		
 		String[] printResult = print(line, variables);
 		if (printResult[0] != null) return printResult;
 		
-		//if (print(line)) return 1;
-		//else if (varAssign(line)) return 2;
-		//else if (loop(line)) return 3;
-		//else if (nestedExpr(line)) return 4;
+		//String[] varAssignResult = varAssign(line, variables);
+
+		//String[] loopResult = loop(line, variables);
 		
-		return printResult;
-	}
-	
-	private static boolean nestedExpr(String line, HashMap<String, Object> variables) {
-		for (int i = 0; i < nested; i++) {
-			if (line.charAt(i) != '\t') {
-				if (i == nested - 1) {
-					nested--;
-					break;
-				} else return false;
-			}
-		}
-		if (expr(line.substring(nested), variables)[0] == null) return false;
-		return true;
+		String[] ifResult = ifStat(line, variables);		
+		if (ifResult[0] != null) return ifResult;
+		
+		return ifResult;
 	}
 	
 	private static String checkVariable(String var, HashMap<String, Object> variables) {
@@ -110,6 +124,159 @@ public class translator {
 		return null;
 	}
 	
+	private static String[] loop(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		if (line.substring(0, 4).equals("for ")) {
+		} else if (line.substring(0, 6).equals("while ")) {
+		}
+
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] nestedExpr(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		if (nested == 0) return parsed;
+
+		String tab = "";
+		boolean end = false;
+		for (int i = 0; i < nested; i++) {
+			if (line.charAt(i) != '\t') {
+				if (i == nested - 1) {
+					nested--;
+					end = true;
+					break;
+				} ;
+			}
+			tab += '\t';
+		}
+
+		String trimedLine = line.trim();		
+		String[] temp = expr(trimedLine, variables, true);
+		
+		if (temp[0] != null) {			
+			javaCode = tab + temp[0];
+			if (end) {
+				javaCode = "} " + javaCode;
+				match = "<nested_expr>: " + line + "\n";
+				Deque<String> tl = nestedStack.get(nested);
+				if (javaCode.contains("else if")) {
+					
+					System.out.println(line);
+					
+					if (tl.contains("if")) nested++;
+					else {
+						javaCode = null;
+						match = "Error: missing if statement";
+					}
+				} else if (javaCode.contains("else")) {
+					if (tl.contains("if")) nested++;
+					else {
+						javaCode = null;
+						match = "Error: missing if statement";
+						tl.pop();
+					}
+				}
+			}
+		} else {
+			parsed[1] = temp[1];
+			return parsed;
+		}
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] ifStat(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		//TODO error handling, check variable
+		
+		line = line.trim();
+		String[] temp = new String[2];
+		String head = "";
+		String ns = "";
+		if (line.length() > 3 && line.substring(0, 3).equals("if ")) {			
+			nested++;
+			head = "if";
+			ns = line.substring(3).trim();
+			Deque<String> tl = new ArrayDeque<String>();
+			tl.push("if");
+			nestedStack.add(tl);			
+		} else if (line.length() > 8 && line.substring(0, 8).equals("else if ")) {
+			if (nestedStack.isEmpty() || nestedStack.get(nested) == null 
+					|| !nestedStack.get(nested).peek().equals("if")) {
+				parsed[1] = "Error: Mising if statement";
+				return parsed;
+			}
+			head = "else if";
+			ns = line.substring(8).trim();
+		} else if (line.length() == 4 && line.substring(0, 4).equals("else")) {
+			if (nestedStack.isEmpty() || nestedStack.get(nested) == null 
+					|| !nestedStack.get(nested).peek().equals("if")) {
+				parsed[1] = "Error: Mising if statement";
+				return parsed;
+			}
+			javaCode = "else {";
+			match = "<if_stat>: " + line + "\n";
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
+		} else {
+			parsed[1] = "Error: invalid if else statement";
+			return parsed;
+		}
+		
+		temp = boolExpr(ns, variables);
+		
+		if (temp[0] != null) {
+			javaCode = head + " (" + temp[0] + ") {";
+			match = "<if_stat>: " + line + "\n";
+			match += temp[1];
+		} else {
+			parsed[1] = temp[1];
+			return parsed;
+		}
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static boolean varAssign(String line) {
+		
+		
+		return false;
+	}
+	
+	private static boolean varList(String line) {
+		
+		
+		return false;
+	}
+	
+	private static boolean valList(String line) {
+		
+		
+		return false;
+	}
+	
+	private static boolean val(String line) {
+		
+		
+		return false;
+	}
+	
 	/**
 	 * <print>
 	 */
@@ -118,7 +285,7 @@ public class translator {
 		String javaCode = null;
 		String match = null;
 		
-		if (line.substring(0, 6).equals("print ")) {
+		if (line.length() > 6 && line.substring(0, 6).equals("print ")) {
 			line = line.trim();
 			String expr = line.substring(6).trim();
 			int len = expr.length();
@@ -176,46 +343,6 @@ public class translator {
 		parsed[0] = javaCode;
 		parsed[1] = match;
 		return parsed;
-	}
-	
-	private static boolean varAssign(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean varList(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean valList(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean val(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean ifStat(String line) {
-		
-		
-		return false;
-	}
-	
-	private static String loop(String line) {
-		if (line.substring(0, 4).equals("for ")) {
-			
-		} else if (line.substring(0, 6).equals("while ")) {
-			
-		}
-		
-		return null;
 	}
 	
 	private static String reverse(String str) {
@@ -697,6 +824,5 @@ public class translator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
+	}	
 }

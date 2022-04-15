@@ -1,11 +1,19 @@
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 
 public class Test {
 
 	public static void main(String[] args) {
-		String test = "boo:foo";
-		String temp[] = test.split("or", 2);
-
-		System.out.println((1) == (2));
+		ArrayList<String> test = new ArrayList<String>();
+		String t = "abc";
+		test.add(t);
+		
+		String ttt = test.get(0);
+		ttt += "}";
+		//t.pop();
+		
+		System.out.println(test.get(0));
 	}
 
 }

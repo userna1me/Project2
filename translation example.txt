@@ -88,7 +88,7 @@ print x == y				# System.out.println(x == y);
 <val_list> ::= <val> | <val> <val_list>
 <val> ::= <var> | "<string>"
 
-<if_stat> ::= if <bool_expr> | else if <bool_expr> | els
+<if_stat> ::= if <bool_expr> | else if <bool_expr> | else
 
 <loop> ::= for <string> | for <num> | while <bool_expr>
 

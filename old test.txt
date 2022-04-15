@@ -1,0 +1,9 @@
+# print 123
+# print 123.0123
+# print .213
+# print 5679.3546
+# print 5679,5646
+# print true
+# print false
+# print "abcde"
+# print 1 == 2 and 3.5 == 4 or 5 == 6
