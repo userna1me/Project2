@@ -5,7 +5,7 @@ public class Test {
 		String test = "boo:foo";
 		String temp[] = test.split("or", 2);
 
-		System.out.println((1) == (2));
+		System.out.println(1 == 1 && 2 == 2 && 3 == 3);
 	}
 
 }

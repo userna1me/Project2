@@ -78,7 +78,7 @@ print x == y				# System.out.println(x == y);
 <math_expr1> ::= <math_expr1> * <neg> | <math_expr1> / <neg> 
 				 | <math_expr1> % <neg> | <neg>
 <neg> ::= <math_base> | -<math_base>
-<math_base> ::= <num> | <string> | (<math_expr>)+
+<math_base> ::= <num> | <string> | (<math_expr>)
 
 <var_assign> ::= var <var_list> is <val_list> | <var_list> is <val_list> | 
 				var <var_list> is <math_expr> | <var_list> is <math_expr>
