@@ -7,6 +7,8 @@ only one way to comment: #
 variable name has to start with letter and can only contain letter
 digit and _
 
+only allow boolean compare and integer compare
+
 var x is "hello"			# String x = "hello";
 var y is true				# boolean y = true;
 var z is 900				# int z = 900;

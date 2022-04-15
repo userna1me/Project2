@@ -9,29 +9,7 @@ import java.util.Scanner;
 import java.util.regex.Pattern;
 
 public class translator {
-	private static Pattern math_symbol = Pattern.compile("^+|-|\\*|/|%$");
-	
 	private static HashMap<String, Object> globalVariables;
-	
-	/* <nested_expr>
-	 * <print>
-	 * <var>
-	 * <bool_expr>
-	 * <bool_expr1>
-	 * <bool_base>
-	 * <math_expr>
-	 * <math_expr1>
-	 * <neg>
-	 * <math_base>
-	 * <var_assign>
-	 * <var_list>
-	 * <val_list>
-	 * <val>
-	 * <if_stat>
-	 * <loop>
-	 * <num>
-	 */
-	
 	private static int nested = 0;
 	
 	public static void main(String args[]) {
@@ -71,6 +49,9 @@ public class translator {
 		for (int i = 0; i<codes.size(); i++) {
 			if (codes.get(i).trim().charAt(0) != '#') 
 				expr(codes.get(i), globalVariables);
+			else {
+				
+			}
 		}
 		
 		return javaCode;
