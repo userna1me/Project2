@@ -37,6 +37,11 @@ public class translator {
 		}
 	}
 	
+	/**
+	 * Parse a single input line from System.in
+	 * @param line
+	 * @return
+	 */
 	private static boolean parse(String line) {
 		int match = expr(line, globalVariables);
 		
@@ -315,10 +320,79 @@ public class translator {
 		return false;
 	}
 	
-	private static boolean varAssign(String line) {
+	/**
+	 * Variable assign line parsing
+	 * @param line
+	 * @return
+	 */
+	private static String[] varAssign(String line) {
+		line = line.trim();
+		String[] result = new String[2];
+		String javaStatement;
 		
+		// TODO add variables to globalVariables?
 		
-		return false;
+		if (line.substring(0,4).equals("var ")) {	// if variable declaration
+			int i = 4;
+			while( ! line.substring(i,i+4).equals(" is ")) {
+				i++;
+			}
+			String varName = line.substring(4,i);
+			String assignment = line.substring(i+4);
+			// if int TODO
+			if (Character.isDigit(assignment.charAt(0))) {
+				javaStatement = "int " + varName + " = " + assignment + ";";
+				// TODO make sure assignment is one complete integer
+			}
+			// if string
+			else if (assignment.charAt(0) == '"' && assignment.charAt(assignment.length()-1) == '"') {
+				javaStatement = "String " + varName + " = " + assignment + ";";
+			}
+			// if bool
+			else if (assignment.equals("true") || assignment.equals("false")) {
+				javaStatement = "Boolean " + varName + " = " + assignment + ";";
+			}
+			// if equation
+			else if (strContainsMath(line) > 0) {
+				javaStatement = "int " + varName + " = " + assignment + ";"; 
+			}
+			// final else: syntax error
+			else {
+				javaStatement = null;
+				result[1] = "Invalid variable assignment.";
+			}
+			result[0] = javaStatement;
+		} else {					// TODO else if (existing variable reassignment)
+			int i = 0;
+			while ( i < line.length()-4 && ! line.substring(i, i+4).equals(" is ")) {
+				i++;
+			}
+			String newLine = "var "+line;
+			result = varAssign(newLine);
+			if (result[0] != null) {
+				for (int j = 0; j<result[0].length(); j++) {
+					if (result[0].charAt(j) == ' ') {
+						break;
+					}
+				}
+				result[0] = result[0].substring(i+1);
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * Helper for varAssign - determines index of a math operator in the given string,
+	 * or returns -1 if none found.
+	 */
+	private static int strContainsMath(String line) {
+		for (int i = 0; i < line.length(); i++)
+			if (line.charAt(i) == '+'
+					|| line.charAt(i) == '-'
+					|| line.charAt(i) == '/'
+					|| line.charAt(i) == '*')
+				return i;
+		return -1;
 	}
 	
 	private static boolean varList(String line) {
