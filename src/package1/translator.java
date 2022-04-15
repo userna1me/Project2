@@ -2,6 +2,8 @@ package package1;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,10 +20,10 @@ public class translator {
 			ArrayList<String> fileContents = readFile(args[0]);
 			
 			// translate it
-			compile(fileContents);
+			ArrayList<String> javaCodes = compile(fileContents);
 			
 			// produce output file
-			
+			writeOutputFile(javaCodes);
 			
 		// interactive system? 
 		} else {
@@ -43,27 +45,29 @@ public class translator {
 		return false;
 	}
 	
-	private static void compile(ArrayList<String> codes) {
-		String[] javaCodes = new String[codes.size()];
-		String[] explictParsing = new String[codes.size()];
+	private static ArrayList<String> compile(ArrayList<String> codes) {
+		ArrayList<String> javaCodes = new ArrayList<String>();
+		ArrayList<String> explictParsing = new ArrayList<String>();
 		
 		for (int i = 0; i < codes.size(); i++) {
 			String code = codes.get(i);
 			if (code.trim().charAt(0) != '#') {
 				String[] temp = expr(code, globalVariables);
 				if (temp[0] != null) {
-					javaCodes[i] = temp[0];
-					explictParsing[i] = temp[1];
+					javaCodes.add(temp[0]);
+					explictParsing.add(temp[1]);
 				} else {
 					System.err.print("[At line " + i +"] ");
 					System.err.print(temp[1]);
 					System.exit(1);
 				}
 			} else {
-				javaCodes[i] = "//" + code.substring(1);
-				explictParsing[i] = "<commemt>: " + code + "\n";
+				javaCodes.add("//" + code.substring(1));
+				explictParsing.add("<commemt>: " + code + "\n");
 			}
 		}
+		
+		return javaCodes;
 	}
 	
 	private static String[] expr(String line, HashMap<String, Object> variables) {
@@ -668,6 +672,31 @@ public class translator {
 			e.printStackTrace();
 		}
 		return fileContents;
+	}
+	
+	/**
+	 * Writes compiled javaCode into a file
+	 * @param javaCode
+	 */
+	private static void writeOutputFile(ArrayList<String> javaCode) {
+		try {
+			// create file
+			String filename = "output.txt";  // output file called 'output.txt', feel free to change
+			File output = new File(filename);
+			if (output.createNewFile()) {
+				// success
+			} else {
+				System.out.println("File already exists.");
+			}
+			// write to file
+			FileWriter writer = new FileWriter(filename);
+			for (String line : javaCode) {
+				writer.write(line);
+			}
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 }
