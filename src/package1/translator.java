@@ -104,7 +104,8 @@ public class translator {
 		String[] printResult = print(line, variables);
 		if (printResult[0] != null) return printResult;
 		
-		//String[] varAssignResult = varAssign(line, variables);
+		String[] varAssignResult = varAssign(line, variables);
+		if (varAssignResult[0] != null) return varAssignResult;
 
 		//String[] loopResult = loop(line, variables);
 		
@@ -619,7 +620,7 @@ public class translator {
 	 * @param line
 	 * @return
 	 */
-	private static String[] varAssign(String line) {
+	private static String[] varAssign(String line, HashMap<String, Object> variables) {
 		line = line.trim();
 		String[] result = new String[2];
 		String javaStatement;
@@ -662,7 +663,7 @@ public class translator {
 				i++;
 			}
 			String newLine = "var "+line;
-			result = varAssign(newLine);
+			result = varAssign(newLine, variables);
 			if (result[0] != null) {
 				for (int j = 0; j<result[0].length(); j++) {
 					if (result[0].charAt(j) == ' ') {
