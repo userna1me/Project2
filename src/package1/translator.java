@@ -173,9 +173,6 @@ public class translator {
 				match = "<nested_expr>: " + line + "\n";
 				Deque<String> tl = nestedStack.get(nested);
 				if (javaCode.contains("else if")) {
-					
-					System.out.println(line);
-					
 					if (tl.contains("if")) nested++;
 					else {
 						javaCode = null;
@@ -266,7 +263,7 @@ public class translator {
 		String javaCode = null;
 		String match = null;
 		
-		if (line.substring(0, 6).equals("print ")) {
+		if (line.length() > 6 && line.substring(0, 6).equals("print ")) {
 			line = line.trim();
 			String expr = line.substring(6).trim();
 			int len = expr.length();
@@ -893,6 +890,5 @@ public class translator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
+	}	
 }
