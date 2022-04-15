@@ -18,47 +18,29 @@ public class translator {
 	private static ArrayList<Deque<String>> nestedStack;
 	
 	public static void main(String args[]) {
-//		// read input file, assuming args[0] is input filename
-//		if (args[0] != null) {
-//			ArrayList<String> fileContents = readFile(args[0]);
-//			globalVariables = new HashMap<String, Object>();
-//			nestedStack = new ArrayList<Deque<String>>();
-//			
-//			// translate it
-//			ArrayList<String> javaCode = compile(fileContents);
-//			
-//			// produce output file
-//			// writeOutputFile(javaCode);
-//			
-//		// TODO interactive system? 
-//		} else {
-//			Scanner input = new Scanner(System.in);
-//			String cmd = input.nextLine();
-//			while (!cmd.equals("exit")) {
-//				parse(cmd);
-//				
-//				cmd = input.nextLine();
-//			}
-//		}
-		globalVariables = new HashMap<String, Object>();
-		String res[];
-		String stmt;
-		stmt = "var i is 9";
-		res = varAssign(stmt, globalVariables);
-		for (String s : res)
-			System.out.println(s);
-		stmt = "i is 1 + 5";
-		res = varAssign(stmt, globalVariables);
-		for (String s : res)
-			System.out.println(s);
-		stmt = "i is / 2";
-		res = varAssign(stmt, globalVariables);
-		for (String s : res)
-			System.out.println(s);
-		stmt = "var i is 2";
-		res = varAssign(stmt, globalVariables);
-		for (String s : res)
-			System.out.println(s);
+		// read input file, assuming args[0] is input filename
+		if (args[0] != null) {
+			ArrayList<String> fileContents = readFile(args[0]);
+			globalVariables = new HashMap<String, Object>();
+			nestedStack = new ArrayList<Deque<String>>();
+			
+			// translate it
+			ArrayList<String> javaCode = compile(fileContents);
+			
+			// produce output file
+			// writeOutputFile(javaCode);
+			
+		// TODO interactive system? 
+		} else {
+			Scanner input = new Scanner(System.in);
+			String cmd = input.nextLine();
+			while (!cmd.equals("exit")) {
+				parse(cmd);
+				
+				cmd = input.nextLine();
+			}
+		}
+		
 		
 	}
 	
