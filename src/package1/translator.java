@@ -18,28 +18,47 @@ public class translator {
 	private static ArrayList<Deque<String>> nestedStack;
 	
 	public static void main(String args[]) {
-		// read input file, assuming args[0] is input filename
-		if (args[0] != null) {
-			ArrayList<String> fileContents = readFile(args[0]);
-			globalVariables = new HashMap<String, Object>();
-			nestedStack = new ArrayList<Deque<String>>();
-			
-			// translate it
-			ArrayList<String> javaCode = compile(fileContents);
-			
-			// produce output file
-			// writeOutputFile(javaCode);
-			
-		// TODO interactive system? 
-		} else {
-			Scanner input = new Scanner(System.in);
-			String cmd = input.nextLine();
-			while (!cmd.equals("exit")) {
-				parse(cmd);
-				
-				cmd = input.nextLine();
-			}
-		}
+//		// read input file, assuming args[0] is input filename
+//		if (args[0] != null) {
+//			ArrayList<String> fileContents = readFile(args[0]);
+//			globalVariables = new HashMap<String, Object>();
+//			nestedStack = new ArrayList<Deque<String>>();
+//			
+//			// translate it
+//			ArrayList<String> javaCode = compile(fileContents);
+//			
+//			// produce output file
+//			// writeOutputFile(javaCode);
+//			
+//		// TODO interactive system? 
+//		} else {
+//			Scanner input = new Scanner(System.in);
+//			String cmd = input.nextLine();
+//			while (!cmd.equals("exit")) {
+//				parse(cmd);
+//				
+//				cmd = input.nextLine();
+//			}
+//		}
+		globalVariables = new HashMap<String, Object>();
+		String res[];
+		String stmt;
+		stmt = "var i is 9";
+		res = varAssign(stmt, globalVariables);
+		for (String s : res)
+			System.out.println(s);
+		stmt = "i is 1 + 5";
+		res = varAssign(stmt, globalVariables);
+		for (String s : res)
+			System.out.println(s);
+		stmt = "i is / 2";
+		res = varAssign(stmt, globalVariables);
+		for (String s : res)
+			System.out.println(s);
+		stmt = "var i is 2";
+		res = varAssign(stmt, globalVariables);
+		for (String s : res)
+			System.out.println(s);
 		
 	}
 	
@@ -627,7 +646,7 @@ public class translator {
 		String[] result = new String[2];
 		String javaStatement;
 		
-		// TODO add variables to globalVariables?
+		// TODO add variables to globalVariables
 		// TODO? if theres a space between (var ) and " is ", then its a multiple-var assignment 
 		
 		if (line.substring(0,4).equals("var ")) {	// if variable declaration
@@ -637,6 +656,15 @@ public class translator {
 			}
 			String varName = line.substring(4,i);		// split into var name and var assignment
 			String assignment = line.substring(i+4);
+			
+			//check variables
+			if (variables.containsKey(varName)) {
+				result[0] = null;
+				result[1] = "Variable has already been declared.";
+				return result;
+			} else {
+				variables.put(varName, assignment);  // (x : x + y)
+			}
 			
 			String[] statementParse = resolveStatement(assignment);
 			if (statementParse[0] == null) {
@@ -649,18 +677,24 @@ public class translator {
 		} else {		// else (line doesn't start with var) (existing variable reassignment)
 			
 			// TODO don't allow redefinintions of a different type
-			
-			String newLine = "var "+line;
-			result = varAssign(newLine, variables);
-			if (result[0] != null) {
-				int j = -1;
-				for (j = 0; j<result[0].length(); j++) {
-					if (result[0].charAt(j) == ' ') {
-						break;
-					}
-				}
-				result[0] = result[0].substring(j+1);
+			int i = 0;
+			while( ! line.substring(i,i+4).equals(" is ")) {
+				i++;
 			}
+			String varName = line.substring(0,i);		// split into var name and var assignment
+			String assignment = line.substring(i+4);			
+			String[] statementParse = resolveStatement(assignment);
+			if (statementParse[0] == null) {
+				javaStatement = null;
+				result[1] = statementParse[1];
+			} else {
+				if (statementParse[1].charAt(0) == '/') {
+					javaStatement = varName + " " + statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+				} else {
+					javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+				}
+			}
+			result[0] = javaStatement;
 		}
 		return result;
 	}
@@ -724,14 +758,32 @@ public class translator {
 				result[1] = "Invalid variable assignment.";
 			}
 		} else {	// if statement is an equation
-			// break equation into two sides and an operator
+			if (statement.charAt(strMathLoc) == '=') {
+				// boolean exception
+				result[0] = "boolean";
+				result[1] = statement;
+				return result;
+			}
 			String part1 = statement.substring(0, strMathLoc);
 			String operator = statement.substring(strMathLoc, strMathLoc+1);
 			String part2 = statement.substring(strMathLoc + 1);
-			part1.trim();
-			part2.trim();
+			part1 = part1.trim();
+			part2 = part2.trim();
 			String[] part1info = resolveStatement(part2);
 			String[] part2info = resolveStatement(part2);
+			
+			if (part1.equals("")) {
+				if (part2info[0] == null) {
+					result[0] = null;
+					result[1] = "Invalid assignment equation. here";
+					return result;
+				} else {
+					result[0] = part2info[0];
+					result[1] = statement;
+					return result;
+				}
+			}
+			
 			if (part1info[0] == null || part2info == null) {
 				result[0] = null;
 				result[1] = "Invalid assignment equation.";
@@ -741,7 +793,7 @@ public class translator {
 				result[1] = statement;
 			} else {
 				result[0] = null;
-				result[1] = "Invalid assignment equation.";
+				result[1] = "Invalid assignment equation. Equation cannot be resolved.";
 			}
 		}
 		return result;
@@ -752,11 +804,12 @@ public class translator {
 	 * or returns -1 if none found.
 	 */
 	private static int strContainsMath(String line) {
-		for (int i = 0; i < line.length(); i++)
+		for (int i = 0; i < line.length()-1; i++)
 			if (line.charAt(i) == '+'
 					|| line.charAt(i) == '-'
 					|| line.charAt(i) == '/'
-					|| line.charAt(i) == '*')
+					|| line.charAt(i) == '*'
+					|| line.charAt(i) == '=' && line.charAt(i+i) == '=')
 				return i;
 		return -1;
 	}
