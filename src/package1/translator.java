@@ -20,10 +20,10 @@ public class translator {
 			ArrayList<String> fileContents = readFile(args[0]);
 			
 			// translate it
-			ArrayList<String> javaCode = compile(fileContents);
+			ArrayList<String> javaCodes = compile(fileContents);
 			
 			// produce output file
-			writeOutputFile(javaCode);
+			writeOutputFile(javaCodes);
 			
 		// interactive system? 
 		} else {
@@ -38,7 +38,7 @@ public class translator {
 	}
 	
 	private static boolean parse(String line) {
-		int match = expr(line, globalVariables);
+		String[] parsed = expr(line, globalVariables);
 		
 		
 		
@@ -46,33 +46,40 @@ public class translator {
 	}
 	
 	private static ArrayList<String> compile(ArrayList<String> codes) {
-		ArrayList<String> javaCode = new ArrayList<String>();
+		ArrayList<String> javaCodes = new ArrayList<String>();
+		ArrayList<String> explictParsing = new ArrayList<String>();
 		
-		for (int i = 0; i<codes.size(); i++) {
-			if (codes.get(i).trim().charAt(0) != '#') 
-				expr(codes.get(i), globalVariables);
-			else {
-				
+		for (int i = 0; i < codes.size(); i++) {
+			String code = codes.get(i);
+			if (code.trim().charAt(0) != '#') {
+				String[] temp = expr(code, globalVariables);
+				if (temp[0] != null) {
+					javaCodes.add(temp[0]);
+					explictParsing.add(temp[1]);
+				} else {
+					System.err.print("[At line " + i +"] ");
+					System.err.print(temp[1]);
+					System.exit(1);
+				}
+			} else {
+				javaCodes.add("//" + code.substring(1));
+				explictParsing.add("<commemt>: " + code + "\n");
 			}
 		}
 		
-		return javaCode;
+		return javaCodes;
 	}
 	
-	private static int expr(String line, HashMap<String, Object> variables) {
-		String[] result = print(line, variables);
-		if (result[0] != null) {
-			System.out.println("=============");
-			System.out.println(result[0]);
-			System.out.println("-------------");
-			System.out.print(result[1]);
-			System.out.println("=============");
-		}
+	private static String[] expr(String line, HashMap<String, Object> variables) {
+		String[] printResult = print(line, variables);
+		if (printResult[0] != null) return printResult;
+		
 		//if (print(line)) return 1;
 		//else if (varAssign(line)) return 2;
 		//else if (loop(line)) return 3;
-		//else if (nestedExpr(line)) return 4;		
-		return 0;
+		//else if (nestedExpr(line)) return 4;
+		
+		return printResult;
 	}
 	
 	private static boolean nestedExpr(String line, HashMap<String, Object> variables) {
@@ -84,21 +91,23 @@ public class translator {
 				} else return false;
 			}
 		}
-		if (expr(line.substring(nested), variables) == 0) return false;
+		if (expr(line.substring(nested), variables)[0] == null) return false;
 		return true;
 	}
 	
-	private static void checkVariable(String var, HashMap<String, Object> variables) {
+	private static String checkVariable(String var, HashMap<String, Object> variables) {
 		if (variables.containsKey(var)) {
 			Object val = variables.get(var);
 			if (val == null) {
-				System.err.println("Error: "+var+" doesn't have a value");
+				return "Error: "+var+" doesn't have a value";
 				//System.exit(1);
 			}
 		} else {
-			System.err.println("Error: "+var+" isn't declared");
+			return "Error: "+var+" isn't declared";
 			//System.exit(1);
 		}
+		
+		return null;
 	}
 	
 	/**
@@ -123,196 +132,50 @@ public class translator {
 				javaCode += ");";
 				match = "<print>: " + line + "\n";
 				match += "<string>: " + expr.substring(1, len-1) + "\n";
-				
-			} else {
+			} else if (expr.charAt(0) == '"') match = "Error: missing \" at the end";
+			else if (expr.charAt(len-1) == '"') match = "Error: missing \" in the beginning";
+			else {
 				// <var>
 				String[] temp = var(expr);
 				if (temp[0] != null) {
-					if (temp[1].contains("<string>")) 
-						checkVariable(expr, variables);
+					if (temp[1].contains("<string>")) {
+						String str = checkVariable(expr, variables);
+						if (str != null) {
+							parsed[1] = str;
+							return parsed;
+						}
+					}
 					javaCode = "System.out.println(" + temp[0] +");";
 					match = "<print>: " + line + "\n";
 					match += temp[1];
 				}
-				
 				// <bool_expr>
 				String[] boolTemp = boolExpr(expr, variables);
 				if (boolTemp[0] != null) {
 					javaCode = "System.out.println(" + boolTemp[0] + ");";
 					match = "<print>: " + line + "\n";
 					match += boolTemp[1];					
-				}
-				
+				} 
 				// <math_expr>
 				String[] mathTemp = mathExpr(expr, variables);
+				if (mathTemp[0] != null) {
+					javaCode = "System.out.println(" + mathTemp[0] + ");";
+					match = "<print>: " + line + "\n";
+					match += mathTemp[1];
+				}
+				// Error handling
+				if (javaCode == null) {
+					if (expr.contains(" + ") || expr.contains(" - ") || expr.contains(" * ")
+							|| expr.contains(" / ") || expr.contains(" % ")) 
+						match = mathTemp[1];
+					else match = boolTemp[1];
+				}
 			}
 		}
 		
 		parsed[0] = javaCode;
 		parsed[1] = match;
 		return parsed;
-	}
-	
-	private static String[] boolExpr(String line, HashMap<String, Object> variables) {
-		String[] parsed = new String[2];
-		String javaCode = null;
-		String match = null;
-		
-		// TODO Error handling, integer.. 
-		
-		if (line.contains(" or ")) {
-			String[] temp = line.split(" or ", 2);
-			String[] t1 = boolExpr(temp[0], variables);
-			String[] t2 = boolExpr1(temp[1], variables);
-			javaCode = "(" + t1[0] + ") || (" + t2[0] + ")";
-			match = "<bool_expr>: " + line + "\n";
-			match += t1[1];
-			match += t2[1];
-		} else {
-			String[] t = boolExpr1(line, variables);
-			javaCode = t[0];
-			match = "<bool_expr>: " + line + "\n";
-			match += t[1];
-		}
-		
-		parsed[0] = javaCode;
-		parsed[1] = match;
-		return parsed;
-	}
-	
-	private static String[] boolExpr1(String line, HashMap<String, Object> variables) {
-		String[] parsed = new String[2];
-		String javaCode = null;
-		String match = null;
-		
-		if (line.contains(" and ")) {
-			String[] temp = line.split(" and ", 2);
-			String[] t1 = boolExpr1(temp[0], variables);
-			String[] t2 = boolExpr2(temp[1], variables);
-			javaCode = "(" + t1[0] + ") && (" + t2[0] + ")";
-			match = "<bool_expr1>: " + line + "\n";
-			match += t1[1];
-			match += t2[1];
-		} else {
-			String[] t = boolExpr2(line, variables);
-			javaCode = t[0];
-			match = "<bool_expr1>: " + line + "\n";
-			match += t[1];
-		}
-		
-		parsed[0] = javaCode;
-		parsed[1] = match;
-		return parsed;
-	}
-	
-	private static String[] boolExpr2(String line, HashMap<String, Object> variables) {
-		String[] parsed = new String[2];
-		String javaCode = null;
-		String match = null;
-		
-		String op = "";
-		String[] temp = new String[2];
-		if (line.contains(" != ")) {
-			op = " != ";
-			temp = line.split(" != ", 2);
-		} else if (line.contains(" == ")) {
-			op = " == ";
-			temp = line.split(" == ", 2);
-		} else if (line.contains(" < ")) {
-			op = " < ";
-			temp = line.split(" < ", 2);
-		} else if (line.contains(" > ")) {
-			op = " > ";
-			temp = line.split(" > ", 2);
-		} else if (line.contains(" <= ")) {
-			op = " <= ";
-			temp = line.split(" <= ", 2);
-		} else if (line.contains(" >= ")) {
-			op = " >= ";
-			temp = line.split(" >= ", 2);
-		} else {
-			String[] t = boolBase(line, variables);
-			javaCode = t[0];
-			match = "<bool_expr2>: " + line + "\n";
-			match += t[1];
-			
-			parsed[0] = javaCode;
-			parsed[1] = match;
-			return parsed;
-		}
-		String[] t1 = boolExpr2(temp[0], variables);
-		String[] t2 = boolBase(temp[1], variables);
-		javaCode = "(" + t1[0] + ")" + op + "(" + t2[0] + ")";
-		match = "<bool_expr2>: "+line+"\n";
-		match += t1[1];
-		match += t2[1];
-		
-		//System.out.println("line: "+line);
-		//System.out.println(">");
-		//System.out.println(match);
-		//System.out.println(">");
-		
-		parsed[0] = javaCode;
-		parsed[1] = match;
-		return parsed;
-	}
-	
-	private static String[] boolBase(String line, HashMap<String, Object> variables) {
-		String[] parsed = new String[2];
-		String javaCode = null;
-		String match = null;
-		
-		line = line.trim();
-		String[] temp = new String[2];
-		// TODO error handling
-		if (line.charAt(0) == '(' && line.charAt(line.length()-1) == ')') {
-			temp = boolExpr(line, variables);
-			if (temp[0] != null) 
-				javaCode = temp[0];
-		} else {
-			temp = var(line);
-			if (temp[0] == null) {
-				System.err.println(temp[1]);
-				//System.exit(1);
-			}
-			if (temp[1].contains("<string>")) checkVariable(line, variables);
-			javaCode = temp[0];
-		}
-		match = "<bool_base>: " + line + "\n";
-		match += temp[1];
-		parsed[0] = javaCode;
-		parsed[1] = match;
-		return parsed;
-	}
-	
-	private static String[] mathExpr(String line, HashMap<String, Object> variables) {
-		String[] parsed = new String[2];
-		String javaCode = null;
-		String match = null;
-		
-		
-		
-		parsed[0] = javaCode;
-		parsed[1] = match;
-		return parsed;
-	}
-	
-	private static boolean mathExpr1(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean neg(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean mathBase(String line) {
-		
-		
-		return false;
 	}
 	
 	private static boolean varAssign(String line) {
@@ -353,6 +216,298 @@ public class translator {
 		}
 		
 		return null;
+	}
+	
+	private static String reverse(String str) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(str);
+		sb.reverse();
+		return sb.toString();
+	}
+	
+	private static String[] mathExpr(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		// TODO Error handling, integer.. 
+		String op = "";
+		String[] temp = new String[2];
+		String t = reverse(line);
+		
+		if (line.contains(" + ")) {
+			op = " + ";
+			temp = t.split(" + ", 2);
+		} else if (line.contains(" - ")) {
+			op = " - ";
+			temp = t.split(" - ", 2);
+		} else {
+			String[] ts = mathExpr1(line, variables);
+			javaCode = ts[0];
+			match = "<math_expr1>: " + line + "\n";
+			match += ts[1];
+			
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
+		}
+		String[] t1 = mathExpr(reverse(temp[1]), variables);
+		String[] t2 = mathExpr1(reverse(temp[0]), variables);
+		if (t1[0] != null && t2[0] != null) {
+			javaCode = "(" + t1[0] + ")" + op + "(" + t2[0] + ")";
+			match = "<math_expr>: "+line+"\n";
+			match += t1[1];
+			match += t2[1];
+		} else if (t1[0] == null) match = t1[1];
+		else match = t2[1];
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] mathExpr1(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		// TODO Error handling, integer.. 
+		String op = "";
+		String[] temp = new String[2];
+		String t = reverse(line);
+		
+		if (line.contains(" * ")) {
+			op = " * ";
+			temp = t.split(" * ", 2);
+		} else if (line.contains(" / ")) {
+			op = " / ";
+			temp = t.split(" / ", 2);
+		} else if (line.contains(" % ")) {
+				op = " % ";
+				temp = t.split(" % ", 2);
+		} else {
+			String[] ts = neg(line, variables);
+			javaCode = ts[0];
+			match = "<math_expr1>: " + line + "\n";
+			match += ts[1];
+			
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
+		}
+		String[] t1 = mathExpr1(reverse(temp[1]), variables);
+		String[] t2 = neg(reverse(temp[0]), variables);
+		if (t1[0] != null && t2[0] != null) {
+			javaCode = "(" + t1[0] + ")" + op + "(" + t2[0] + ")";
+			match = "<math_expr1>: "+line+"\n";
+			match += t1[1];
+			match += t2[1];
+		} else if (t1[0] == null) match = t1[1];
+		else match = t2[1];
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] neg(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		line = line.trim();
+		String neg = "";
+		String base = "";
+		if (line.charAt(0) == '-') {
+			neg = "-";
+			base = line.substring(1);
+		} else base = line;
+		String[] temp = mathBase(base, variables);
+		if (temp[0] != null) {
+			javaCode = neg + temp[0];
+			match = "<neg>: " + line + "\n";
+			match += temp[1];
+		} else match = temp[1];
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] mathBase(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		if (line.charAt(0) == '(' && line.charAt(line.length()-1) == ')') {
+			String[] temp = boolExpr(line, variables);
+			if (temp[0] != null) {
+				javaCode = temp[0];
+				match = "<math_base>: " + line + "\n";
+				match += temp[1];
+				parsed[0] = javaCode;
+				parsed[1] = match;
+				return parsed;
+			}
+		} 
+		
+		if (line.equals("true") || line.equals("false")) {
+			parsed[1] = "Error: " + line + "is a boolean";
+			return parsed; 
+		}
+		
+		String[] varTemp = var(line);
+		if (varTemp[0] != null) {
+			javaCode = varTemp[0];
+			match = "<math_base>: " + line + "\n";
+			match += varTemp[1];
+		} else match = varTemp[1];
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+
+	private static String[] boolExpr(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		// TODO Error handling, integer.. 
+		
+		if (line.contains(" or ")) {
+			String t = reverse(line);
+			String[] temp = t.split(" ro ", 2);
+			String[] t1 = boolExpr(reverse(temp[1]), variables);
+			String[] t2 = boolExpr1(reverse(temp[0]), variables);
+			if (t1[0] != null && t2[0] != null) {
+				javaCode = "(" + t1[0] + ") || (" + t2[0] + ")";
+				match = "<bool_expr>: " + line + "\n";
+				match += t1[1];
+				match += t2[1];
+			} else if (t1[0] == null) match = t1[1];
+			else match = t2[1];
+		} else {
+			String[] t = boolExpr1(line, variables);
+			javaCode = t[0];
+			match = "<bool_expr>: " + line + "\n";
+			match += t[1];
+		}
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] boolExpr1(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		if (line.contains(" and ")) {
+			String t = reverse(line);
+			String[] temp = t.split(" dna ", 2);
+			String[] t1 = boolExpr(reverse(temp[1]), variables);
+			String[] t2 = boolExpr1(reverse(temp[0]), variables);
+			if (t1[0] != null && t2[0] != null) {
+				javaCode = "(" + t1[0] + ") && (" + t2[0] + ")";
+				match = "<bool_expr1>: " + line + "\n";
+				match += t1[1];
+				match += t2[1];
+			} else if (t1[0] == null) match = t1[1];
+			else match = t2[1];
+		} else {
+			String[] t = boolExpr2(line, variables);
+			javaCode = t[0];
+			match = "<bool_expr1>: " + line + "\n";
+			match += t[1];
+		}
+
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] boolExpr2(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		String op = "";
+		String[] temp = new String[2];
+		String t = reverse(line);
+		
+		if (line.contains(" != ")) {
+			op = " != ";
+			temp = t.split(" =! ", 2);
+		} else if (line.contains(" == ")) {
+			op = " == ";
+			temp = t.split(" == ", 2);
+		} else if (line.contains(" < ")) {
+			op = " < ";
+			temp = t.split(" < ", 2);
+		} else if (line.contains(" > ")) {
+			op = " > ";
+			temp = t.split(" > ", 2);
+		} else if (line.contains(" <= ")) {
+			op = " <= ";
+			temp = t.split(" =< ", 2);
+		} else if (line.contains(" >= ")) {
+			op = " >= ";
+			temp = t.split(" => ", 2);
+		} else {
+			String[] ts = boolBase(line, variables);
+			javaCode = ts[0];
+			match = "<bool_expr2>: " + line + "\n";
+			match += ts[1];
+			
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
+		}
+		String[] t1 = boolExpr2(reverse(temp[1]), variables);
+		String[] t2 = boolBase(reverse(temp[0]), variables);
+		if (t1[0] != null && t2[0] != null) {
+			javaCode = "(" + t1[0] + ")" + op + "(" + t2[0] + ")";
+			match = "<bool_expr2>: "+line+"\n";
+			match += t1[1];
+			match += t2[1];
+		} else if (t1[0] == null) match = t1[1];
+		else match = t2[1];
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] boolBase(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		line = line.trim();
+		String[] temp = new String[2];
+		// TODO error handling
+		if (line.charAt(0) == '(' && line.charAt(line.length()-1) == ')') {
+			temp = boolExpr(line, variables);
+			if (temp[0] != null) 
+				javaCode = temp[0];
+		} else {
+			temp = var(line);
+			if (temp[0] == null) {
+				parsed[1] = temp[1];
+				return parsed;
+				//System.exit(1);
+			}
+			if (temp[1].contains("<string>")) checkVariable(line, variables);
+			javaCode = temp[0];
+		}
+		match = "<bool_base>: " + line + "\n";
+		match += temp[1];
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
 	}
 	
 	/**
@@ -411,9 +566,13 @@ public class translator {
 			parsed[1] = match;
 			return parsed;
 		}
-
+		
 		parsed[0] = javaCode;
-		parsed[1] = match;
+		parsed[1] = varTemp[1];
+		
+		//System.out.println(javaCode);
+		//System.out.println(match);
+		
 		return parsed;
 	}
 	
@@ -426,18 +585,22 @@ public class translator {
 		String match = null;
 		
 		if (!Character.isLetter(var.charAt(0))) {
-			System.err.println("Error: "+var+" is not a valid variable name, "
-					+ "valid variable name has to start with a letter");
+			match = "Error: "+var+" is not a valid variable name, "
+					+ "valid variable name has to start with a letter";
 			//System.exit(1);
+			parsed[1] = match;
+			return parsed;
 		} 
 		for (int i = 0; i<var.length(); i++) {
 			char t = var.charAt(0);
 			if (Character.isAlphabetic(t) || Character.isDigit(t) || t == '_')
 				continue;
 			else {
-				System.err.println("Error: "+var+" is not a valid variable name, "
-						+ "valid variable name only contains letter, digit and _");
+				match = "Error: "+var+" is not a valid variable name, "
+						+ "valid variable name only contains letter, digit and _";
 				//System.exit(1);
+				parsed[1] = match;
+				return parsed;
 			}
 		}
 		javaCode = var;
