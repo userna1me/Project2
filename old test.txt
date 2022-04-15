@@ -5,12 +5,7 @@ if a == b
 else if c == d
 else
 	print 2
-var a is 5
-var b is true
-var c is "abc"
-var d is z + 1
-var e is a == b
-a is + 3
+
 # print 123
 # print 123.0123
 # print .213
@@ -20,5 +15,3 @@ a is + 3
 # print false
 # print "abcde"
 # print 1 == 2 and 3 == 4 and 5 == 6
-
-
