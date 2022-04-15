@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Deque;
@@ -47,13 +48,13 @@ public class translator {
 	 * @return
 	 */
 	private static boolean parse(String line) {
-		int match = expr(line, globalVariables);
+		String[] parsed = expr(line, globalVariables, false);
 		
 		return false;
 	}
 	
 	private static ArrayList<String> compile(ArrayList<String> codes) {
-		ArrayList<String> javaCode = new ArrayList<String>();
+		ArrayList<String> javaCodes = new ArrayList<String>();
 		ArrayList<String> explictParsing = new ArrayList<String>();
 		
 		for (int i = 0; i < codes.size(); i++) {
@@ -94,7 +95,7 @@ public class translator {
 		return javaCodes;
 	}
 	
-	private static int expr(String line, HashMap<String, Object> variables) {
+	private static String[] expr(String line, HashMap<String, Object> variables, boolean fromNested) {
 		if (!fromNested) {
 			String[] nestedResult = nestedExpr(line, variables);
 			if (nestedResult[0] != null) return nestedResult;
@@ -113,17 +114,19 @@ public class translator {
 		return ifResult;
 	}
 	
-	private static void checkVariable(String var, HashMap<String, Object> variables) {
+	private static String checkVariable(String var, HashMap<String, Object> variables) {
 		if (variables.containsKey(var)) {
 			Object val = variables.get(var);
 			if (val == null) {
-				System.err.println("Error: "+var+" doesn't have a value");
+				return "Error: "+var+" doesn't have a value";
 				//System.exit(1);
 			}
 		} else {
-			System.err.println("Error: "+var+" isn't declared");
+			return "Error: "+var+" isn't declared";
 			//System.exit(1);
 		}
+		
+		return null;
 	}
 	
 	private static String[] loop(String line, HashMap<String, Object> variables) {
@@ -140,7 +143,7 @@ public class translator {
 		return parsed;
 	}
 	
-	private static boolean nestedExpr(String line, HashMap<String, Object> variables) {
+	private static  String[] nestedExpr(String line, HashMap<String, Object> variables) {
 		String[] parsed = new String[2];
 		String javaCode = null;
 		String match = null;
