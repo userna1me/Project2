@@ -2,6 +2,8 @@ package package1;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +45,7 @@ public class translator {
 			ArrayList<String> javaCode = compile(fileContents);
 			
 			// produce output file
-			
+			writeOutputFile(javaCode);
 			
 		// interactive system? 
 		} else {
@@ -526,6 +528,31 @@ public class translator {
 			e.printStackTrace();
 		}
 		return fileContents;
+	}
+	
+	/**
+	 * Writes compiled javaCode into a file
+	 * @param javaCode
+	 */
+	private static void writeOutputFile(ArrayList<String> javaCode) {
+		try {
+			// create file
+			String filename = "output.txt";  // output file called 'output.txt', feel free to change
+			File output = new File(filename);
+			if (output.createNewFile()) {
+				// success
+			} else {
+				System.out.println("File already exists.");
+			}
+			// write to file
+			FileWriter writer = new FileWriter(filename);
+			for (String line : javaCode) {
+				writer.write(line);
+			}
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 }
