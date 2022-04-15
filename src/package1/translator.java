@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -72,10 +73,11 @@ public class translator {
 					System.exit(1);
 				}
 				
-				System.out.println(javaCodes.get(i));
-				//System.out.println(nested);
+				//System.out.println(javaCodes.get(i));
+				System.out.println(code);
+				System.out.println(nested);
 				System.out.println("------------");
-				System.out.print(explictParsing.get(i));
+				//System.out.print(explictParsing.get(i));
 				
 			} else {
 				javaCodes.add("//" + code.substring(1));
@@ -92,6 +94,9 @@ public class translator {
 		System.out.println("+++");
 		for (String code: javaCodes) System.out.println(code);
 		
+		System.out.println("nested: "+nested);
+		System.out.println(nestedStack.size());
+		
 		return javaCodes;
 	}
 	
@@ -101,31 +106,38 @@ public class translator {
 			if (nestedResult[0] != null) return nestedResult;
 		}
 		
-		String[] printResult = print(line, variables);
+		String[] printResult = print(line, variables);		
 		if (printResult[0] != null) return printResult;
 		
-		String[] varAssignResult = varAssign(line, variables);
-		if (varAssignResult[0] != null) return varAssignResult;
-
-		//String[] loopResult = loop(line, variables);
+		//String[] varAssignResult = varAssign(line, variables);
+		//if (varAssignResult[0] != null) return varAssignResult;
 		
 		String[] ifResult = ifStat(line, variables);		
 		if (ifResult[0] != null) return ifResult;
 		
-		return ifResult;
+		String[] loopResult = loop(line, variables);
+		if (loopResult[0] != null) return loopResult;
+		
+		String trimed = line.trim();
+		if (trimed.length() >= 5 && trimed.substring(0, 5).equals("print")) 
+			return printResult;
+		else if (trimed.length() >= 2 && trimed.substring(0, 3).equals("if")
+				|| trimed.length() >= 4 && trimed.substring(0, 4).equals("else"))
+			return ifResult;
+		else if (line.length() > 3 && line.substring(0, 4).equals("for")
+				|| line.length() > 5 && line.substring(0, 6).equals("while"))
+			return loopResult;
+		
+		String[] parsed = new String[2];
+		parsed[1] = "Error: In valid syntax";
+		return parsed;
 	}
 	
 	private static String checkVariable(String var, HashMap<String, Object> variables) {
 		if (variables.containsKey(var)) {
 			Object val = variables.get(var);
-			if (val == null) {
-				return "Error: "+var+" doesn't have a value";
-				//System.exit(1);
-			}
-		} else {
-			return "Error: "+var+" isn't declared";
-			//System.exit(1);
-		}
+			if (val == null) return "Error: "+var+" doesn't have a value";
+		} else return "Error: "+var+" isn't declared";
 		
 		return null;
 	}
@@ -135,10 +147,62 @@ public class translator {
 		String javaCode = null;
 		String match = null;
 		
-		if (line.substring(0, 4).equals("for ")) {
-		} else if (line.substring(0, 6).equals("while ")) {
+		line = line.trim();
+		String label = "";
+		if (line.length() > 4 && line.substring(0, 4).equals("for ")) {
+			nested++;
+			label = "for";
+			String var = line.substring(4).trim();
+			if (var.equals("true") || var.equals("false")) {
+				parsed[1] = "Error: invalid for loop condition";
+				return parsed;
+			}
+			
+			String[] temp = var(var);
+			if (temp[0] != null) {
+				if (temp[1].contains("<string>")) {
+					String str = checkVariable(var, variables);
+					if (str != null) {
+						parsed[1] = str;
+						return parsed;
+					} else {
+						Object val = variables.get(var);
+						if (num(var)[0] == null) {
+							parsed[1] = "Error: "+var+" is not a number";
+							return parsed;
+						}
+					}
+				}
+				match = "<loop>: " + line + "\n";
+				match += temp[1];
+				javaCode = "for (int i = 0; i < "+temp[0] + "; i++) {";
+			} else {
+				parsed[1] = temp[1];
+				return parsed;
+			}			
+		} else if (line.length() > 6 && line.substring(0, 6).equals("while ")) {
+			
+			System.out.println(line);
+			
+			nested++;
+			label = "while";	
+			String[] temp = boolExpr(line.substring(6).trim(), variables);
+			if (temp[0] != null) {
+				javaCode = "while (" + temp[0] + ") {";
+				match = "<loop>: " + line;
+				match += temp[1];
+			} else match = temp[1];		
+		} else {
+			parsed[1] = "Error: invalid loop statement";
+			return parsed;
 		}
-
+		
+		if (javaCode != null) {
+			Deque<String> tl = new ArrayDeque<String>();
+			tl.push(label);
+			nestedStack.add(tl);
+		}
+		
 		parsed[0] = javaCode;
 		parsed[1] = match;
 		return parsed;
@@ -153,13 +217,13 @@ public class translator {
 
 		String tab = "";
 		boolean end = false;
+		int diff = 0;
 		for (int i = 0; i < nested; i++) {
 			if (line.charAt(i) != '\t') {
-				if (i == nested - 1) {
-					nested--;
-					end = true;
-					break;
-				} ;
+				nested--;
+				end = true;
+				diff = i;
+				break;
 			}
 			tab += '\t';
 		}
@@ -171,6 +235,11 @@ public class translator {
 			javaCode = tab + temp[0];
 			if (end) {
 				javaCode = "} " + javaCode;
+				if (nested != diff) {
+					javaCode = "} " + javaCode;
+					nestedStack.remove(nested);
+					nested--;
+				}
 				match = "<nested_expr>: " + line + "\n";
 				Deque<String> tl = nestedStack.get(nested);
 				if (javaCode.contains("else if")) {
@@ -212,10 +281,7 @@ public class translator {
 		if (line.length() > 3 && line.substring(0, 3).equals("if ")) {			
 			nested++;
 			head = "if";
-			ns = line.substring(3).trim();
-			Deque<String> tl = new ArrayDeque<String>();
-			tl.push("if");
-			nestedStack.add(tl);			
+			ns = line.substring(3).trim();		
 		} else if (line.length() > 8 && line.substring(0, 8).equals("else if ")) {
 			if (nestedStack.isEmpty() || nestedStack.get(nested) == null 
 					|| !nestedStack.get(nested).peek().equals("if")) {
@@ -241,11 +307,16 @@ public class translator {
 		}
 		
 		temp = boolExpr(ns, variables);
-		
 		if (temp[0] != null) {
 			javaCode = head + " (" + temp[0] + ") {";
 			match = "<if_stat>: " + line + "\n";
 			match += temp[1];
+			
+			if (head.equals("if")) {
+				Deque<String> tl = new ArrayDeque<String>();
+				tl.push("if");
+				nestedStack.add(tl);	
+			}
 		} else {
 			parsed[1] = temp[1];
 			return parsed;
@@ -317,6 +388,8 @@ public class translator {
 					else match = boolTemp[1];
 				}
 			}
+		} else {
+			match = "Error: invalid print statement";
 		}
 		
 		parsed[0] = javaCode;
@@ -603,7 +676,6 @@ public class translator {
 			if (temp[0] == null) {
 				parsed[1] = temp[1];
 				return parsed;
-				//System.exit(1);
 			}
 			if (temp[1].contains("<string>")) checkVariable(line, variables);
 			javaCode = temp[0];
@@ -716,9 +788,7 @@ public class translator {
 		String javaCode = null;
 		String match = null;
 		String var = line.trim();
-		
-		// TODO simplify code
-		
+
 		// <bool>
 		String[] boolTemp = bool(var);
 		if (boolTemp[0] != null) {
@@ -729,7 +799,6 @@ public class translator {
 			parsed[1] = match;
 			return parsed;
 		}
-		
 		// <num>
 		String[] numTemp = num(var);
 		if (numTemp[0] != null) {
@@ -781,7 +850,6 @@ public class translator {
 		if (!Character.isLetter(var.charAt(0))) {
 			match = "Error: "+var+" is not a valid variable name, "
 					+ "valid variable name has to start with a letter";
-			//System.exit(1);
 			parsed[1] = match;
 			return parsed;
 		} 
@@ -792,11 +860,19 @@ public class translator {
 			else {
 				match = "Error: "+var+" is not a valid variable name, "
 						+ "valid variable name only contains letter, digit and _";
-				//System.exit(1);
 				parsed[1] = match;
 				return parsed;
 			}
 		}
+		
+		HashSet<String> label = new HashSet<String>();
+		label.add("if"); label.add("else"); label.add("for"); label.add("while");
+		label.add("true"); label.add("false");label.add("var"); label.add("is");
+		if (label.contains(var)) {
+			parsed[1] = "Error: variable name can't be" + var + "\n";
+			return parsed;
+		}
+		
 		javaCode = var;
 		match = "<string>: " + var + "\n";
 		
