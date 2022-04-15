@@ -9,13 +9,7 @@ import java.util.Scanner;
 import java.util.regex.Pattern;
 
 public class translator {
-	private static Pattern string = Pattern.compile("^.+$");
-	// private static Pattern cha = Pattern.compile("^.$"); // any characters
-	// private static Pattern var_assign = Pattern.compile("^var (.+) is (.+)|(.+) is (.+)$");
 	private static Pattern math_symbol = Pattern.compile("^+|-|\\*|/|%$");
-	private static Pattern intVal = Pattern.compile("^\\d+$");
-	private static Pattern real = Pattern.compile("^(\\d+).(\\d+)$");
-	private static Pattern bool = Pattern.compile("^true|false$");
 	
 	private static HashMap<String, Object> globalVariables;
 	
@@ -64,7 +58,7 @@ public class translator {
 	}
 	
 	private static boolean parse(String line) {
-		int match = expr(line);
+		int match = expr(line, globalVariables);
 		
 		
 		
@@ -75,16 +69,15 @@ public class translator {
 		ArrayList<String> javaCode = new ArrayList<String>();
 		
 		for (int i = 0; i<codes.size(); i++) {
-			String line = codes.get(i).trim();
-			if (line.charAt(0) != '#') expr(codes.get(i));
+			if (codes.get(i).trim().charAt(0) != '#') 
+				expr(codes.get(i), globalVariables);
 		}
 		
 		return javaCode;
 	}
 	
-	private static int expr(String line) {
-		boolean match = false;
-		String[] result = print(line);
+	private static int expr(String line, HashMap<String, Object> variables) {
+		String[] result = print(line, variables);
 		if (result[0] != null) {
 			System.out.println("=============");
 			System.out.println(result[0]);
@@ -99,7 +92,7 @@ public class translator {
 		return 0;
 	}
 	
-	private static boolean nestedExpr(String line) {
+	private static boolean nestedExpr(String line, HashMap<String, Object> variables) {
 		for (int i = 0; i < nested; i++) {
 			if (line.charAt(i) != '\t') {
 				if (i == nested - 1) {
@@ -108,11 +101,27 @@ public class translator {
 				} else return false;
 			}
 		}
-		if (expr(line.substring(nested)) == 0) return false;
+		if (expr(line.substring(nested), variables) == 0) return false;
 		return true;
 	}
 	
-	private static String[] print(String line) {
+	private static void checkVariable(String var, HashMap<String, Object> variables) {
+		if (variables.containsKey(var)) {
+			Object val = variables.get(var);
+			if (val == null) {
+				System.err.println("Error: "+var+" doesn't have a value");
+				//System.exit(1);
+			}
+		} else {
+			System.err.println("Error: "+var+" isn't declared");
+			//System.exit(1);
+		}
+	}
+	
+	/**
+	 * <print>
+	 */
+	private static String[] print(String line, HashMap<String, Object> variables) {
 		String[] parsed = new String[2];
 		String javaCode = null;
 		String match = null;
@@ -129,35 +138,30 @@ public class translator {
 				// TODO error handling
 				javaCode = "System.out.println(" + expr;
 				javaCode += ");";
-				match = "<print>: " + line.trim() + "\n";
+				match = "<print>: " + line + "\n";
 				match += "<string>: " + expr.substring(1, len-1) + "\n";
+				
 			} else {
 				// <var>
 				String[] temp = var(expr);
 				if (temp[0] != null) {
-					if (temp[1].contains("<string>")) {
-						// TODO scoping
-						if (globalVariables.containsKey(expr)) {
-							Object val = globalVariables.get(expr);
-							if (val == null) {
-								System.err.println("Error: "+expr+" doesn't have a value");
-								System.exit(1);
-							}
-						} else {
-							System.err.println("Error: "+expr+" isn't declared");
-							System.exit(1);
-						}
-					} 
+					if (temp[1].contains("<string>")) 
+						checkVariable(expr, variables);
 					javaCode = "System.out.println(" + temp[0] +");";
-					match = "<print>: " + line.trim() + "\n";
+					match = "<print>: " + line + "\n";
 					match += temp[1];
 				}
 				
 				// <bool_expr>
-				boolExpr(expr);
+				String[] boolTemp = boolExpr(expr, variables);
+				if (boolTemp[0] != null) {
+					javaCode = "System.out.println(" + boolTemp[0] + ");";
+					match = "<print>: " + line + "\n";
+					match += boolTemp[1];					
+				}
 				
 				// <math_expr>
-				mathExpr(expr);
+				String[] mathTemp = mathExpr(expr, variables);
 			}
 		}
 		
@@ -166,165 +170,148 @@ public class translator {
 		return parsed;
 	}
 	
-	/**
-	 * <var>
-	 */
-	private static String[] var(String line) {
-		String[] parsed = new String[2];
-		String javaCode = null;
-		String match = null;
-		String var = line.trim();
-		
-		// TODO simplify code
-		
-		// <bool>
-		String[] boolTemp = bool(var);
-		if (boolTemp[0] != null) {
-			javaCode = boolTemp[0];
-			match = "<var>: " + var + "\n";
-			match += boolTemp[1];
-			parsed[0] = javaCode;
-			parsed[1] = match;
-			return parsed;
-		}
-		
-		// <num>
-		String[] numTemp = num(var);
-		if (numTemp[0] != null) {
-			match = "<var>: " + var + "\n";
-			match += numTemp[1];
-			javaCode = numTemp[0]; // the number in String
-			parsed[0] = javaCode;
-			parsed[1] = match;
-			return parsed;
-		}
-		// Error handling: no letter than assume intended to do num
-		boolean tf = true;
-		for (int i = 0; i<var.length(); i++) {
-			if (Character.isLetter(var.charAt(i))) {
-				tf = false;
-				break;
-			}
-		}
-		if (tf) {
-			System.err.println(numTemp[1]);
-			System.exit(1);
-		}
-		
-		// <string> or variable name
-		String[] varTemp = variable(var);
-		if (varTemp[0] != null) {
-			javaCode = varTemp[0];
-			match = "<var>: " + var + "\n";
-			match += varTemp[1];
-			parsed[0] = javaCode;
-			parsed[1] = match;
-			return parsed;
-		}
-
-		parsed[0] = javaCode;
-		parsed[1] = match;
-		return parsed;
-	}
-	
-	/**
-	 * <string> or varialb name
-	 */
-	private static String[] variable(String var) {
+	private static String[] boolExpr(String line, HashMap<String, Object> variables) {
 		String[] parsed = new String[2];
 		String javaCode = null;
 		String match = null;
 		
-		if (!Character.isLetter(var.charAt(0))) {
-			System.err.println("Error: "+var+" is not a valid variable name, "
-					+ "valid variable name has to start with a letter");
-			System.exit(1);
-		} 
-		for (int i = 0; i<var.length(); i++) {
-			char t = var.charAt(0);
-			if (Character.isAlphabetic(t) || Character.isDigit(t) || t == '_')
-				continue;
-			else {
-				System.err.println("Error: "+var+" is not a valid variable name, "
-						+ "valid variable name only contains letter, digit and _");
-				System.exit(1);
-			}
+		// TODO Error handling, integer.. 
+		
+		if (line.contains(" or ")) {
+			String[] temp = line.split(" or ", 2);
+			String[] t1 = boolExpr(temp[0], variables);
+			String[] t2 = boolExpr1(temp[1], variables);
+			javaCode = "(" + t1[0] + ") || (" + t2[0] + ")";
+			match = "<bool_expr>: " + line + "\n";
+			match += t1[1];
+			match += t2[1];
+		} else {
+			String[] t = boolExpr1(line, variables);
+			javaCode = t[0];
+			match = "<bool_expr>: " + line + "\n";
+			match += t[1];
 		}
-		javaCode = var;
-		match = "<string>: " + var + "\n";
 		
 		parsed[0] = javaCode;
 		parsed[1] = match;
 		return parsed;
 	}
 	
-	/**
-	 * <num>
-	 */
-	private static String[] num(String var) {
+	private static String[] boolExpr1(String line, HashMap<String, Object> variables) {
 		String[] parsed = new String[2];
 		String javaCode = null;
 		String match = null;
 		
-		try {
-			double num = Double.parseDouble(var);
-			javaCode = String.valueOf(num);
-			match = "<num>: " + var + "\n";
-			if (Math.ceil(num) == Math.floor(num))
-				match += "<int>: " + var + "\n";
-			else match += "<real>: " + var + "\n";
-		} catch (NumberFormatException e) {
-			match = "Error: "+var+" is not a valid number\n";
+		if (line.contains(" and ")) {
+			String[] temp = line.split(" and ", 2);
+			String[] t1 = boolExpr1(temp[0], variables);
+			String[] t2 = boolExpr2(temp[1], variables);
+			javaCode = "(" + t1[0] + ") && (" + t2[0] + ")";
+			match = "<bool_expr1>: " + line + "\n";
+			match += t1[1];
+			match += t2[1];
+		} else {
+			String[] t = boolExpr2(line, variables);
+			javaCode = t[0];
+			match = "<bool_expr1>: " + line + "\n";
+			match += t[1];
+		}
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	private static String[] boolExpr2(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		String op = "";
+		String[] temp = new String[2];
+		if (line.contains(" != ")) {
+			op = " != ";
+			temp = line.split(" != ", 2);
+		} else if (line.contains(" == ")) {
+			op = " == ";
+			temp = line.split(" == ", 2);
+		} else if (line.contains(" < ")) {
+			op = " < ";
+			temp = line.split(" < ", 2);
+		} else if (line.contains(" > ")) {
+			op = " > ";
+			temp = line.split(" > ", 2);
+		} else if (line.contains(" <= ")) {
+			op = " <= ";
+			temp = line.split(" <= ", 2);
+		} else if (line.contains(" >= ")) {
+			op = " >= ";
+			temp = line.split(" >= ", 2);
+		} else {
+			String[] t = boolBase(line, variables);
+			javaCode = t[0];
+			match = "<bool_expr2>: " + line + "\n";
+			match += t[1];
 			
-			/*System.err.println("Error: "+var+" is not a valid number");
-			System.exit(1);*/
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
 		}
+		String[] t1 = boolExpr2(temp[0], variables);
+		String[] t2 = boolBase(temp[1], variables);
+		javaCode = "(" + t1[0] + ")" + op + "(" + t2[0] + ")";
+		match = "<bool_expr2>: "+line+"\n";
+		match += t1[1];
+		match += t2[1];
+		
+		//System.out.println("line: "+line);
+		//System.out.println(">");
+		//System.out.println(match);
+		//System.out.println(">");
 		
 		parsed[0] = javaCode;
 		parsed[1] = match;
 		return parsed;
 	}
 	
-	/**
-	 * <bool> 
-	 */
-	private static String[] bool(String var) {
+	private static String[] boolBase(String line, HashMap<String, Object> variables) {
 		String[] parsed = new String[2];
 		String javaCode = null;
 		String match = null;
 		
-		if (var.equals("true") || var.equals("false")) {
-			javaCode = var;
-			match = "<bool>: " + var + "\n";
-		} else match = "Error: " + var + " is not a boolean value\n";
-		
+		line = line.trim();
+		String[] temp = new String[2];
+		// TODO error handling
+		if (line.charAt(0) == '(' && line.charAt(line.length()-1) == ')') {
+			temp = boolExpr(line, variables);
+			if (temp[0] != null) 
+				javaCode = temp[0];
+		} else {
+			temp = var(line);
+			if (temp[0] == null) {
+				System.err.println(temp[1]);
+				//System.exit(1);
+			}
+			if (temp[1].contains("<string>")) checkVariable(line, variables);
+			javaCode = temp[0];
+		}
+		match = "<bool_base>: " + line + "\n";
+		match += temp[1];
 		parsed[0] = javaCode;
 		parsed[1] = match;
 		return parsed;
 	}
 	
-	private static boolean boolExpr(String line) {
+	private static String[] mathExpr(String line, HashMap<String, Object> variables) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
 		
 		
-		return false;
-	}
-	
-	private static boolean boolExpr1(String line) {
 		
-		
-		return false;
-	}
-	
-	private static boolean boolBase(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean mathExpr(String line) {
-		
-		
-		return false;
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
 	}
 	
 	private static boolean mathExpr1(String line) {
@@ -385,6 +372,142 @@ public class translator {
 		return null;
 	}
 	
+	/**
+	 * <var>
+	 */
+	private static String[] var(String line) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		String var = line.trim();
+		
+		// TODO simplify code
+		
+		// <bool>
+		String[] boolTemp = bool(var);
+		if (boolTemp[0] != null) {
+			javaCode = boolTemp[0];
+			match = "<var>: " + var + "\n";
+			match += boolTemp[1];
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
+		}
+		
+		// <num>
+		String[] numTemp = num(var);
+		if (numTemp[0] != null) {
+			match = "<var>: " + var + "\n";
+			match += numTemp[1];
+			javaCode = numTemp[0]; // the number in String
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
+		}
+		// Error handling: no letter than assume intended to do num
+		boolean tf = true;
+		for (int i = 0; i<var.length(); i++) {
+			if (Character.isLetter(var.charAt(i))) {
+				tf = false;
+				break;
+			}
+		}
+		if (tf) {
+			match = numTemp[1];
+			parsed[1] = match;
+			return parsed;
+		}
+		
+		// <string> or variable name
+		String[] varTemp = variable(var);
+		if (varTemp[0] != null) {
+			javaCode = varTemp[0];
+			match = "<var>: " + var + "\n";
+			match += varTemp[1];
+			parsed[0] = javaCode;
+			parsed[1] = match;
+			return parsed;
+		}
+
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	/**
+	 * <string> or varialb name
+	 */
+	private static String[] variable(String var) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		if (!Character.isLetter(var.charAt(0))) {
+			System.err.println("Error: "+var+" is not a valid variable name, "
+					+ "valid variable name has to start with a letter");
+			//System.exit(1);
+		} 
+		for (int i = 0; i<var.length(); i++) {
+			char t = var.charAt(0);
+			if (Character.isAlphabetic(t) || Character.isDigit(t) || t == '_')
+				continue;
+			else {
+				System.err.println("Error: "+var+" is not a valid variable name, "
+						+ "valid variable name only contains letter, digit and _");
+				//System.exit(1);
+			}
+		}
+		javaCode = var;
+		match = "<string>: " + var + "\n";
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	/**
+	 * <num>
+	 */
+	private static String[] num(String var) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		try {
+			double num = Double.parseDouble(var);
+			javaCode = String.valueOf(num);
+			match = "<num>: " + var + "\n";			
+			if (Math.ceil(num) == Math.floor(num)) {
+				javaCode = javaCode.substring(0, javaCode.length()-2);
+				match += "<int>: " + var + "\n";
+			} else match += "<real>: " + var + "\n";
+		} catch (NumberFormatException e) {
+			match = "Error: "+var+" is not a valid number\n";
+		}
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
+	/**
+	 * <bool> 
+	 */
+	private static String[] bool(String var) {
+		String[] parsed = new String[2];
+		String javaCode = null;
+		String match = null;
+		
+		if (var.equals("true") || var.equals("false")) {
+			javaCode = var;
+			match = "<bool>: " + var + "\n";
+		} else match = "Error: " + var + " is not a boolean value\n";
+		
+		parsed[0] = javaCode;
+		parsed[1] = match;
+		return parsed;
+	}
+	
 	/***
 	 * Given the filepath, reads a file
 	 * and returns a list of the lines from the file.
@@ -397,10 +520,6 @@ public class translator {
 			while(s.hasNextLine()) {
 				String line = s.nextLine();
 				fileContents.add(line);
-				
-				//System.out.println(line);
-				//System.out.println(line.charAt(0) == '\t');
-				
 			}
 			s.close();
 		} catch (FileNotFoundException e) {

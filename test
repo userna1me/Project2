@@ -5,4 +5,5 @@
 # print 5679,5646
 # print true
 # print false
-print "abcde"
+# print "abcde"
+print 1 == 2 and 3 == 4 and 5 == 6

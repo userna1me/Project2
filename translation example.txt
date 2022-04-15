@@ -65,17 +65,18 @@ print x == y				# System.out.println(x == y);
 
 <var> ::= <string> | <num> | <bool>
 
-<bool_expr> ::= <bool_expr> and <bool_expr1> | <bool_expr> or <bool_expr1> | <bool_expr1>
-<bool_expr1> ::= <bool_expr1> == <bool_base> | <bool_expr1> != <bool_base> 
-				| <bool_expr1> <= <bool_base> | <bool_expr1> > <bool_base> 
-				| <bool_expr1> < <bool_base> | <bool_expr1> > <bool_base>
+<bool_expr> ::= <bool_expr> or <bool_expr1> | <bool_expr1>
+<bool_expr1> ::= <bool_expr1> and <bool_expr2> | <bool_expr2>
+<bool_expr2> ::= <bool_expr2> <comparison_symbol> <bool_base> | <bool_base>
 <bool_base> ::= <var> | (<bool_expr>)
+
+<comparison_symbol> ::= ==|!=|<=|>=|>|<
 
 <math_expr> ::= <math_expr> + <math_expr1> | <math_expr> - <math_expr1> | <math_expr1>
 <math_expr1> ::= <math_expr1> * <neg> | <math_expr1> / <neg> 
 				 | <math_expr1> % <neg> | <neg>
 <neg> ::= <math_base> | -<math_base>
-<math_base> ::= <num> | <string> | (<math_expr>)
+<math_base> ::= <num> | <string> | (<math_expr>)+
 
 <var_assign> ::= var <var_list> is <val_list> | <var_list> is <val_list> | 
 				var <var_list> is <math_expr> | <var_list> is <math_expr>
