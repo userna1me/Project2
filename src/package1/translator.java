@@ -18,40 +18,66 @@ public class translator {
 	
 	private static ArrayList<Deque<String>> nestedStack;
 	
+	@SuppressWarnings("resource")
 	public static void main(String args[]) {
 		// read input file, assuming args[0] is input filename
 		if (args[0] != null) {
 			ArrayList<String> fileContents = readFile(args[0]);
 			globalVariables = new HashMap<String, Object>();
 			nestedStack = new ArrayList<Deque<String>>();
-			
 			// translate it
-			ArrayList<String> javaCode = compile(fileContents);
-			
-			// produce output file
+			ArrayList<String> javaCodes = compile(fileContents);
+			// output the code
+			printResult(javaCodes, args[0]);
 			// writeOutputFile(javaCode);
 			
 		// TODO interactive system? 
 		} else {
 			Scanner input = new Scanner(System.in);
+			System.out.print(">> ");
 			String cmd = input.nextLine();
 			while (!cmd.equals("exit")) {
 				parse(cmd);
-				
+				System.out.print(">> ");
 				cmd = input.nextLine();
 			}
 		}
 	}
 	
 	/**
+	 * Print out the translated java codes
+	 * 
+	 * @param codes
+	 * @param className
+	 */
+	private static void printResult(ArrayList<String> codes, String className) {
+		System.out.println("public class "+className+"{ ");
+		System.out.println();
+		System.out.println("\tpublic static void main(String[] args) {");
+		
+		// TODO command line
+		
+		for (String code: codes) {
+			System.out.print("\t\t");
+			System.out.println(code);
+		}
+		System.out.println("\t}\n\n}");
+	}
+	
+	/**
 	 * Parse a single input line from System.in
 	 * @param line
-	 * @return
 	 */
-	private static boolean parse(String line) {
+	private static void parse(String line) {
 		String[] parsed = expr(line, globalVariables, false);
-		
-		return false;
+		if (parsed[0] != null) {
+			System.out.println(parsed[0]);
+			System.out.println("+++++parsing process+++++");
+			System.out.print(parsed[1]);
+			System.out.println("+++++++++++++++++++++++++");
+		} else {
+			System.err.println(parsed[1]);
+		}
 	}
 	
 	private static ArrayList<String> compile(ArrayList<String> codes) {
@@ -63,6 +89,12 @@ public class translator {
 			String trimed = code.trim();
 			if (trimed.length() == 0) continue;
 			if (trimed.charAt(0) != '#') {
+				
+				System.out.println(">> "+code);
+				System.out.println("before: ");
+				System.out.println("nested: "+nested);
+				System.out.println("stack length: "+nestedStack);
+				
 				String[] temp = expr(code, globalVariables, false);
 				if (temp[0] != null) {
 					javaCodes.add(temp[0]);
@@ -73,30 +105,24 @@ public class translator {
 					System.exit(1);
 				}
 				
-				//System.out.println(javaCodes.get(i));
-				System.out.println(code);
-				System.out.println(nested);
-				System.out.println("------------");
-				//System.out.print(explictParsing.get(i));
+				System.out.println("after: ");
+				System.out.println("nested: "+nested);
+				System.out.println("stack length: "+nestedStack);
+				System.out.println(">>>>>>>>");
 				
 			} else {
 				javaCodes.add("//" + code.substring(1));
 				explictParsing.add("<commemt>: " + code + "\n");
 			}
 		}
-		if (nested != 0) {
+		while (nested != 0) {
 			String temp = javaCodes.get(javaCodes.size()-1);
 			temp += "}";
+			nested--;
 			javaCodes.remove(javaCodes.size()-1);
 			javaCodes.add(temp);
 		}
-		
-		System.out.println("+++");
-		for (String code: javaCodes) System.out.println(code);
-		
-		System.out.println("nested: "+nested);
-		System.out.println(nestedStack.size());
-		
+		//writeOutputFile(explictParsing);
 		return javaCodes;
 	}
 	
@@ -127,6 +153,8 @@ public class translator {
 		else if (line.length() > 3 && line.substring(0, 4).equals("for")
 				|| line.length() > 5 && line.substring(0, 6).equals("while"))
 			return loopResult;
+		//else if (line.length() > 3 && line.substring(0, 4).equals("var"))
+		//	return varAssignResult;
 		
 		String[] parsed = new String[2];
 		parsed[1] = "Error: In valid syntax";
@@ -167,7 +195,7 @@ public class translator {
 						return parsed;
 					} else {
 						Object val = variables.get(var);
-						if (num(var)[0] == null) {
+						if (num(val.toString())[0] == null) {
 							parsed[1] = "Error: "+var+" is not a number";
 							return parsed;
 						}
@@ -181,9 +209,6 @@ public class translator {
 				return parsed;
 			}			
 		} else if (line.length() > 6 && line.substring(0, 6).equals("while ")) {
-			
-			System.out.println(line);
-			
 			nested++;
 			label = "while";	
 			String[] temp = boolExpr(line.substring(6).trim(), variables);
@@ -234,10 +259,16 @@ public class translator {
 		if (temp[0] != null) {			
 			javaCode = tab + temp[0];
 			if (end) {
+				
+				System.out.println("nested: "+nested);
+				System.out.println("diff: "+diff);
+				System.out.println(nestedStack);
+				
 				javaCode = "} " + javaCode;
 				if (nested != diff) {
 					javaCode = "} " + javaCode;
-					nestedStack.remove(nested);
+					//nestedStack.remove(nested);
+					nestedStack.remove(0);
 					nested--;
 				}
 				match = "<nested_expr>: " + line + "\n";
@@ -760,24 +791,6 @@ public class translator {
 					|| line.charAt(i) == '*')
 				return i;
 		return -1;
-	}
-	
-	private static boolean varList(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean valList(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean val(String line) {
-		
-		
-		return false;
 	}
 	
 	/**
