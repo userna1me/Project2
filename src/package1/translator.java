@@ -830,7 +830,6 @@ public class translator {
 					return result;
 				}
 				String part1 = statement.substring(0, strMathLoc);
-				String operator = statement.substring(strMathLoc, strMathLoc+1);
 				String part2 = statement.substring(strMathLoc + 1);
 				part1 = part1.trim();
 				part2 = part2.trim();
