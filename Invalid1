@@ -1,0 +1,5 @@
+var a is 1
+var b is true
+print a
+print "b"
+print c
