@@ -717,16 +717,11 @@ public class translator {
 		line = line.trim();
 		line = removeComment(line);
 		String[] result = new String[2];
-		String javaStatement;
-		
-		// TODO add variables to globalVariables
-		// TODO? if theres a space between (var ) and " is ", then its a multiple-var assignment 
-		
+		String javaStatement; 
 		if (!line.contains(" is ")) {
 			result[1] = "Error: invalid variable assignment";
 			return result;
 		}
-		
 		if (line.substring(0,4).equals("var ")) {	// if variable declaration
 			int i = 4;
 			while( ! line.substring(i,i+4).equals(" is ")) {
@@ -734,7 +729,6 @@ public class translator {
 			}
 			String varName = line.substring(4,i);		// split into var name and var assignment
 			String assignment = line.substring(i+4);
-
 			//check variables
 			if (variables.containsKey(varName)) {
 				result[0] = null;
@@ -743,19 +737,18 @@ public class translator {
 			} else {
 				variables.put(varName, assignment);  // (x : x + y)
 			}
-			
 			String[] statementParse = resolveStatement(assignment);
-
 			if (statementParse[0] == null) {
 				javaStatement = null;
+				result[0] = null;
 				result[1] = statementParse[1];
 			} else {
 				javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+				result[0] = javaStatement;
+				// setting result[1]
 			}
-			result[0] = javaStatement;
-		} else {		// else (line doesn't start with var) (existing variable reassignment)
-			
-			// TODO don't allow redefinintions of a different type
+			result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"<type>: "+statementParse[0]+"\n<val>: "+statementParse[1]+"\n";
+		} else {	// else (line doesn't start with var) (existing variable reassignment)
 			int i = 0;
 			while( ! line.substring(i,i+4).equals(" is ")) {
 				i++;
@@ -769,14 +762,15 @@ public class translator {
 			} else {
 				if (statementParse[1].charAt(0) == '/') {
 					javaStatement = varName + " " + statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+					result[0] = javaStatement;
 				} else {
-					// javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
 					javaStatement = varName + " = " + statementParse[1] + ";";
+					result[0] = javaStatement;
 				}
 			}
-			result[0] = javaStatement;
+			// setting result[1]
+			result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"<type>: "+statementParse[0]+"\n<val>: "+statementParse[1]+"\n";
 		}
-
 		return result;
 		}
 	
@@ -821,20 +815,7 @@ public class translator {
 					result[0] = "boolean";
 					result[1] = statement;
 				} else if (globalVariables.containsKey(statement)) {
-					// if existing var
-//					Object value = globalVariables.get(statement);
-//					String type = value.getClass().getCanonicalName();
-//					if (type.equals("Integer"))
-//						result[0] = "int";
-//					else if (type.equals("Boolean"))
-//						result[0] = "boolean";
-//					else if (type.equals("Double"))
-//						result[0] = "double";
-//					else if (type.equals("String"))
-//						result[0] = "String";
-//					else
-//						//result[0] = type;
-						result[0] = "";
+					result[0] = "";
 					result[1] = statement;
 				} else {
 					// else unknown
@@ -954,7 +935,7 @@ public class translator {
 			return parsed;
 		}
 		
-		/// <string> or variable name
+		// <string> or variable name
 		String[] varTemp = variable(var);
 		if (varTemp[0] != null) {
 			javaCode = varTemp[0];
