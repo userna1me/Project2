@@ -3,10 +3,10 @@
 # prints true or false
 
 var counter is 2
-var remainder is 0
+var remainder is 1
 var result is true
 
-while counter <= arg / 2
+while counter <= arg / 2 and result 
 	remainder is arg % counter
 	if remainder != 0
 		counter is + 1
