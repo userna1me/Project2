@@ -49,9 +49,16 @@ public class translator {
 		System.out.println("public class "+className+"{ ");
 		System.out.println();
 		System.out.println("\tpublic static void main(String[] args) {");
-		
-		// TODO command line
-		
+		// can only take one command line input, stroe in arg
+		System.out.println("\t\tint arg = 0;");
+		System.out.println("\t\tif (args.length>0) {");
+		System.out.println("\t\t\ttry { arg = (int) Double.parseDouble(args[0]);");
+		System.out.println("\t\t\t} catch (NumberFormatException e) {");
+		System.out.println("\t\t\t\tSystem.err.println(\"Error: command line input must be integer\");");
+		System.out.println("\t\t\t\tSystem.exit(1);");
+		System.out.println("\t\t\t}");
+		System.out.println("\t\t}");
+		System.out.println();
 		for (String code: codes) {
 			System.out.print("\t\t");
 			System.out.println(code);
@@ -77,17 +84,25 @@ public class translator {
 	
 	private static ArrayList<String> compile(ArrayList<String> codes) {
 		ArrayList<String> javaCodes = new ArrayList<String>();
-		ArrayList<String> explictParsing = new ArrayList<String>();
+		ArrayList<String> explicitParsing = new ArrayList<String>();
 		
 		for (int i = 0; i < codes.size(); i++) {
 			String code = codes.get(i);
 			String trimed = code.trim();
-			if (trimed.length() == 0) continue;
+			if (trimed.length() == 0) {
+				javaCodes.add(" ");
+				explicitParsing.add(" ");
+				continue;
+			}
 			if (trimed.charAt(0) != '#') {
 				String[] temp = expr(code, globalVariables, false);
 				if (temp[0] != null) {
 					javaCodes.add(temp[0]);
-					explictParsing.add(temp[1]);
+					explicitParsing.add(temp[1]);
+					
+					System.out.println(">> "+code);
+					System.out.println(temp[1]);
+					
 				} else {
 					System.err.print("[At line " + (i+1) +"] ");
 					System.err.print(temp[1]);
@@ -95,7 +110,7 @@ public class translator {
 				}
 			} else {
 				javaCodes.add("//" + code.substring(1));
-				explictParsing.add("<commemt>: " + code + "\n");
+				explicitParsing.add("<commemt>: " + code + "\n");
 			}
 		}
 		while (nested != 0) {
@@ -105,7 +120,8 @@ public class translator {
 			javaCodes.remove(javaCodes.size()-1);
 			javaCodes.add(temp);
 		}
-		//writeOutputFile(explictParsing);
+
+		writeOutputFile(explicitParsing, codes);
 		return javaCodes;
 	}
 	
@@ -178,7 +194,10 @@ public class translator {
 						return parsed;
 					} else {
 						Object val = variables.get(var);
-						if (num(val.toString())[0] == null) {
+						if (val instanceof String && ((String) val).contains(" ") && 
+								!((String) val).contains("\""))
+							{}
+						else if (num(val.toString())[0] == null) {
 							parsed[1] = "Error: "+var+" is not a number";
 							return parsed;
 						}
@@ -715,7 +734,7 @@ public class translator {
 			}
 			String varName = line.substring(4,i);		// split into var name and var assignment
 			String assignment = line.substring(i+4);
-			
+
 			//check variables
 			if (variables.containsKey(varName)) {
 				result[0] = null;
@@ -726,9 +745,7 @@ public class translator {
 			}
 			
 			String[] statementParse = resolveStatement(assignment);
-			
-			System.out.println(line);
-			
+
 			if (statementParse[0] == null) {
 				javaStatement = null;
 				result[1] = statementParse[1];
@@ -753,13 +770,13 @@ public class translator {
 				if (statementParse[1].charAt(0) == '/') {
 					javaStatement = varName + " " + statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
 				} else {
-//					javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+					// javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
 					javaStatement = varName + " = " + statementParse[1] + ";";
 				}
 			}
 			result[0] = javaStatement;
 		}
-		
+
 		return result;
 		}
 	
@@ -1062,10 +1079,10 @@ public class translator {
 	 * Writes compiled javaCode into a file
 	 * @param javaCode
 	 */
-	private static void writeOutputFile(ArrayList<String> javaCode) {
+	private static void writeOutputFile(ArrayList<String> parsing, ArrayList<String> codes) {
 		try {
 			// create file
-			String filename = "output.txt";  // output file called 'output.txt', feel free to change
+			String filename = "Explicit Parsing.txt";
 			File output = new File(filename);
 			if (output.createNewFile()) {
 				// success
@@ -1074,8 +1091,13 @@ public class translator {
 			}
 			// write to file
 			FileWriter writer = new FileWriter(filename);
-			for (String line : javaCode) {
-				writer.write(line);
+			for (int i = 0; i < codes.size(); i++) {
+				if (codes.get(i).trim().length() == 0) continue;
+				writer.write(">> " + codes.get(i) + "\n");
+				
+				if (parsing.get(i) == null) writer.write("null\n");
+				
+				else writer.write(parsing.get(i));
 			}
 			writer.close();
 		} catch (IOException e) {
