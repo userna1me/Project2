@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,12 +84,6 @@ public class translator {
 			String trimed = code.trim();
 			if (trimed.length() == 0) continue;
 			if (trimed.charAt(0) != '#') {
-				
-				System.out.println(">> "+code);
-				System.out.println("before: ");
-				System.out.println("nested: "+nested);
-				System.out.println("stack length: "+nestedStack);
-				
 				String[] temp = expr(code, globalVariables, false);
 				if (temp[0] != null) {
 					javaCodes.add(temp[0]);
@@ -100,20 +93,11 @@ public class translator {
 					System.err.print(temp[1]);
 					System.exit(1);
 				}
-				
-				//System.out.println("after: ");
-				//System.out.println("nested: "+nested);
-				//System.out.println("stack length: "+nestedStack);
-				//System.out.println(">>>>>>>>");
-				
 			} else {
 				javaCodes.add("//" + code.substring(1));
 				explictParsing.add("<commemt>: " + code + "\n");
 			}
 		}
-		
-		//printResult(javaCodes, "test");
-		
 		while (nested != 0) {
 			String temp = javaCodes.get(javaCodes.size()-1);
 			temp += "}";
@@ -134,8 +118,8 @@ public class translator {
 		String[] printResult = print(line, variables);		
 		if (printResult[0] != null) return printResult;
 		
-		//String[] varAssignResult = varAssign(line, variables);
-		//if (varAssignResult[0] != null) return varAssignResult;
+		String[] varAssignResult = varAssign(line, variables);
+		if (varAssignResult[0] != null) return varAssignResult;
 		
 		String[] ifResult = ifStat(line, variables);		
 		if (ifResult[0] != null) return ifResult;
@@ -152,8 +136,8 @@ public class translator {
 		else if (line.length() > 3 && line.substring(0, 4).equals("for")
 				|| line.length() > 5 && line.substring(0, 6).equals("while"))
 			return loopResult;
-		//else if (line.length() > 3 && line.substring(0, 4).equals("var"))
-		//	return varAssignResult;
+		else if (line.length() > 3 && line.substring(0, 4).equals("var"))
+			return varAssignResult;
 		
 		String[] parsed = new String[2];
 		parsed[1] = "Error: In valid syntax";
@@ -202,7 +186,7 @@ public class translator {
 				}
 				match = "<loop>: " + line + "\n";
 				match += temp[1];
-				javaCode = "for (int i = 0; i < "+temp[0] + "; i++) {";
+				javaCode = "for (int i = 0; i < ("+temp[0] + "); i++) {";
 			} else {
 				parsed[1] = temp[1];
 				return parsed;
@@ -712,73 +696,198 @@ public class translator {
 	 */
 	private static String[] varAssign(String line, HashMap<String, Object> variables) {
 		line = line.trim();
+		line = removeComment(line);
 		String[] result = new String[2];
 		String javaStatement;
 		
-		// TODO add variables to globalVariables?
+		// TODO add variables to globalVariables
+		// TODO? if theres a space between (var ) and " is ", then its a multiple-var assignment 
+		
+		if (!line.contains(" is ")) {
+			result[1] = "Error: invalid variable assignment";
+			return result;
+		}
 		
 		if (line.substring(0,4).equals("var ")) {	// if variable declaration
 			int i = 4;
 			while( ! line.substring(i,i+4).equals(" is ")) {
 				i++;
 			}
-			String varName = line.substring(4,i);
+			String varName = line.substring(4,i);		// split into var name and var assignment
 			String assignment = line.substring(i+4);
-			// if int TODO
-			if (Character.isDigit(assignment.charAt(0))) {
-				javaStatement = "int " + varName + " = " + assignment + ";";
-				// TODO make sure assignment is one complete integer
+			
+			//check variables
+			if (variables.containsKey(varName)) {
+				result[0] = null;
+				result[1] = "Variable has already been declared.";
+				return result;
+			} else {
+				variables.put(varName, assignment);  // (x : x + y)
 			}
-			// if string
-			else if (assignment.charAt(0) == '"' && assignment.charAt(assignment.length()-1) == '"') {
-				javaStatement = "String " + varName + " = " + assignment + ";";
-			}
-			// if bool
-			else if (assignment.equals("true") || assignment.equals("false")) {
-				javaStatement = "Boolean " + varName + " = " + assignment + ";";
-			}
-			// if equation
-			else if (strContainsMath(line) > 0) {
-				javaStatement = "int " + varName + " = " + assignment + ";"; 
-			}
-			// final else: syntax error
-			else {
+			
+			String[] statementParse = resolveStatement(assignment);
+			
+			System.out.println(line);
+			
+			if (statementParse[0] == null) {
 				javaStatement = null;
-				result[1] = "Invalid variable assignment.";
+				result[1] = statementParse[1];
+			} else {
+				javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
 			}
 			result[0] = javaStatement;
-		} else {					// TODO else if (existing variable reassignment)
+		} else {		// else (line doesn't start with var) (existing variable reassignment)
+			
+			// TODO don't allow redefinintions of a different type
 			int i = 0;
-			while ( i < line.length()-4 && ! line.substring(i, i+4).equals(" is ")) {
+			while( ! line.substring(i,i+4).equals(" is ")) {
 				i++;
 			}
-			String newLine = "var "+line;
-			result = varAssign(newLine, variables);
-			if (result[0] != null) {
-				for (int j = 0; j<result[0].length(); j++) {
-					if (result[0].charAt(j) == ' ') {
-						break;
+			String varName = line.substring(0,i);		// split into var name and var assignment
+			String assignment = line.substring(i+4);			
+			String[] statementParse = resolveStatement(assignment);
+			if (statementParse[0] == null) {
+				javaStatement = null;
+				result[1] = statementParse[1];
+			} else {
+				if (statementParse[1].charAt(0) == '/') {
+					javaStatement = varName + " " + statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+				} else {
+					javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+				}
+			}
+			result[0] = javaStatement;
+		}
+		
+		return result;
+		}
+	
+		/**
+		 * resolves the statement into an array of two strings:
+		 * 		1. the return type of the statement
+		 * 		2. the statement 
+		 * In the case of an error: returns [null, error message]
+		 * @param statement (in our language) like "46" or "x + 52" or "false"
+		 * @return [return type (or null), return value] in java
+		 */
+		private static String[] resolveStatement(String statement) {
+			statement.trim();
+			String[] result = new String[2];
+			int len = statement.length();
+			int strMathLoc = strContainsMath(statement);
+			// if statement is Not an equation
+			if (strMathLoc == -1) {	
+				if (Character.isDigit(statement.charAt(0))) {
+					// if number
+					try {
+						Integer.parseInt(statement);
+						result[0] = "int";
+						result[1] = statement;
+						return result;
+					} catch(Exception e) {}
+					try {
+						Double.parseDouble(statement);
+						result[0] = "double";
+						result[1] = statement;
+						return result;
+					} catch(Exception e) {
+						result[0] = null;
+						result[1] = "Invalid variable assignment - number cannot be parsed.";
+					}
+				} else if (statement.charAt(0) == '"' && statement.charAt(len-1) == '"') {
+					// if string
+					result[0] = "String";
+					result[1] = statement;
+				} else if (statement.equals("true") || statement.equals("false")) {
+					// if bool
+					result[0] = "boolean";
+					result[1] = statement;
+				} else if (globalVariables.containsKey(statement)) {
+					// if existing var
+					Object value = globalVariables.get(statement);
+					String type = value.getClass().getCanonicalName();
+					if (type.equals("Integer"))
+						result[0] = "int";
+					else if (type.equals("Boolean"))
+						result[0] = "boolean";
+					else if (type.equals("Double"))
+						result[0] = "double";
+					else
+						result[0] = type;
+					result[1] = statement;
+				} else {
+					// else unknown
+					result[0] = null;
+					result[1] = "Invalid variable assignment.";
+				}
+			} else {	// if statement is an equation
+				if (statement.charAt(strMathLoc) == '=') {
+					// boolean exception
+					result[0] = "boolean";
+					result[1] = statement;
+					return result;
+				}
+				String part1 = statement.substring(0, strMathLoc);
+				String operator = statement.substring(strMathLoc, strMathLoc+1);
+				String part2 = statement.substring(strMathLoc + 1);
+				part1 = part1.trim();
+				part2 = part2.trim();
+				String[] part1info = resolveStatement(part2);
+				String[] part2info = resolveStatement(part2);
+				
+				if (part1.equals("")) {
+					if (part2info[0] == null) {
+						result[0] = null;
+						result[1] = "Invalid assignment equation. here";
+						return result;
+					} else {
+						result[0] = part2info[0];
+						result[1] = statement;
+						return result;
 					}
 				}
-				result[0] = result[0].substring(i+1);
+				
+				if (part1info[0] == null || part2info == null) {
+					result[0] = null;
+					result[1] = "Invalid assignment equation.";
+					return result;
+				} else if (part1info[0].equals(part2info[0])) {
+					result[0] = part1info[0];
+					result[1] = statement;
+				} else {
+					result[0] = null;
+					result[1] = "Invalid assignment equation. Equation cannot be resolved.";
+				}
 			}
+			return result;
 		}
-		return result;
-	}
-	
-	/**
-	 * Helper for varAssign - determines index of a math operator in the given string,
-	 * or returns -1 if none found.
-	 */
-	private static int strContainsMath(String line) {
-		for (int i = 0; i < line.length(); i++)
-			if (line.charAt(i) == '+'
-					|| line.charAt(i) == '-'
-					|| line.charAt(i) == '/'
-					|| line.charAt(i) == '*')
-				return i;
-		return -1;
-	}
+		
+		/**
+		 * Helper for varAssign - determines index of the first math operator in the given string,
+		 * or returns -1 if none found.
+		 */
+		private static int strContainsMath(String line) {
+			for (int i = 0; i < line.length()-1; i++)
+				if (line.charAt(i) == '+'
+						|| line.charAt(i) == '-'
+						|| line.charAt(i) == '/'
+						|| line.charAt(i) == '*'
+						|| line.charAt(i) == '=' && line.charAt(i+i) == '=')
+					return i;
+			return -1;
+		}
+		
+		/**
+		 * Removes the comment (everything after #) from a line
+		 * @param line
+		 * @return
+		 */
+		private static String removeComment(String line) {
+			for (int i = 0; i < line.length(); i++)
+				if (line.charAt(i) == '#')
+					return line.substring(0,i);
+			return line;
+		}
 	
 	/**
 	 * <var>

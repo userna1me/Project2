@@ -1,7 +1,6 @@
-if a == b
-	print 1
-else if c == d
-	print 3
-else
-	print 2
-print 4
+var a is 5
+var b is true
+var c is "abc"
+var d is z + 1
+var e is a == b
+a is + 3
