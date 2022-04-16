@@ -1,20 +1,6 @@
-var i is 5
+var a is 5
 var b is true
-var s is "abc"
+var c is "abc"
 var d is z + 1
-
-b is false
-i is 77
-i is i + 14
-
-# else if a = d
-
-i is + 3
-i is / 10
-
-print i
-
 var e is a == b
-
-print 5679.3546
-print 5679,5646
+a is + 3
