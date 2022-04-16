@@ -6,18 +6,23 @@
 <commemt>: # prints true or false
 >> var counter is 2
 <var_assign>: var counter is 2
-<var>: counter<type>: int
+<var>: counter
+<type>: int
 <val>: 2
->> var remainder is 0
-<var_assign>: var remainder is 0
-<var>: remainder<type>: int
-<val>: 0
+>> var remainder is 1
+<var_assign>: var remainder is 1
+<var>: remainder
+<type>: int
+<val>: 1
 >> var result is true
 <var_assign>: var result is true
-<var>: result<type>: boolean
+<var>: result
+<type>: boolean
 <val>: true
->> while counter <= arg / 2
-<loop>: while counter <= arg / 2<bool_expr>: counter <= arg / 2
+>> while counter <= arg / 2 and result 
+<loop>: while counter <= arg / 2 and result<bool_expr>: counter <= arg / 2 and result
+<bool_expr1>: counter <= arg / 2 and result
+<bool_expr>: counter <= arg / 2
 <bool_expr1>: counter <= arg / 2
 <bool_expr2>: counter <= arg / 2
 <bool_expr2>: counter
@@ -27,6 +32,11 @@
 <bool_base>: arg / 2
 <var>: arg / 2
 <string>: arg / 2
+<bool_expr1>: result
+<bool_expr2>: result
+<bool_base>: result
+<var>: result
+<string>: result
 >> 	remainder is arg % counter
 null
 >> 	if remainder != 0

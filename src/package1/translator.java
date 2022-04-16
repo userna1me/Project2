@@ -747,7 +747,7 @@ public class translator {
 				result[0] = javaStatement;
 				// setting result[1]
 			}
-			result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"<type>: "+statementParse[0]+"\n<val>: "+statementParse[1]+"\n";
+			result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"\n<type>: "+statementParse[0]+"\n<val>: "+statementParse[1]+"\n";
 		} else {	// else (line doesn't start with var) (existing variable reassignment)
 			int i = 0;
 			while( ! line.substring(i,i+4).equals(" is ")) {
@@ -760,8 +760,9 @@ public class translator {
 				javaStatement = null;
 				result[1] = statementParse[1];
 			} else {
-				if (statementParse[1].charAt(0) == '/') {
-					javaStatement = varName + " " + statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+				char m = statementParse[1].charAt(0);
+				if (m == '/' || m == '*' || m == '+' || m == '-' || m == '%') {
+					javaStatement = varName + " = " + varName + " " + statementParse[1] + ";";
 					result[0] = javaStatement;
 				} else {
 					javaStatement = varName + " = " + statementParse[1] + ";";
@@ -769,8 +770,10 @@ public class translator {
 				}
 			}
 			// setting result[1]
-			result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"<type>: "+statementParse[0]+"\n<val>: "+statementParse[1]+"\n";
+			result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"\n<type>: "+statementParse[0]+"\n<val>: "+statementParse[1]+"\n";
 		}
+		if (result[1] == null)
+			result[1] = "<var_assign>: "+result[0];
 		return result;
 		}
 	
