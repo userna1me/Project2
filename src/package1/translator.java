@@ -8,15 +8,13 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.Scanner;
 
 public class translator {
 	private static HashMap<String, Object> globalVariables;
 	private static int nested = 0;
 	
-	private static ArrayList<Deque<String>> nestedStack;
+	private static ArrayList<String> nestedStack;
 	
 	@SuppressWarnings("resource")
 	public static void main(String args[]) {
@@ -24,13 +22,11 @@ public class translator {
 		if (args[0] != null) {
 			ArrayList<String> fileContents = readFile(args[0]);
 			globalVariables = new HashMap<String, Object>();
-			nestedStack = new ArrayList<Deque<String>>();
+			nestedStack = new ArrayList<String>();
 			// translate it
 			ArrayList<String> javaCodes = compile(fileContents);
 			// output the code
 			printResult(javaCodes, args[0]);
-			// writeOutputFile(javaCode);
-			
 		// TODO interactive system? 
 		} else {
 			Scanner input = new Scanner(System.in);
@@ -105,16 +101,19 @@ public class translator {
 					System.exit(1);
 				}
 				
-				System.out.println("after: ");
-				System.out.println("nested: "+nested);
-				System.out.println("stack length: "+nestedStack);
-				System.out.println(">>>>>>>>");
+				//System.out.println("after: ");
+				//System.out.println("nested: "+nested);
+				//System.out.println("stack length: "+nestedStack);
+				//System.out.println(">>>>>>>>");
 				
 			} else {
 				javaCodes.add("//" + code.substring(1));
 				explictParsing.add("<commemt>: " + code + "\n");
 			}
 		}
+		
+		//printResult(javaCodes, "test");
+		
 		while (nested != 0) {
 			String temp = javaCodes.get(javaCodes.size()-1);
 			temp += "}";
@@ -222,12 +221,8 @@ public class translator {
 			return parsed;
 		}
 		
-		if (javaCode != null) {
-			Deque<String> tl = new ArrayDeque<String>();
-			tl.push(label);
-			nestedStack.add(tl);
-		}
-		
+		if (javaCode != null) nestedStack.add(label);
+
 		parsed[0] = javaCode;
 		parsed[1] = match;
 		return parsed;
@@ -245,14 +240,14 @@ public class translator {
 		int diff = 0;
 		for (int i = 0; i < nested; i++) {
 			if (line.charAt(i) != '\t') {
-				nested--;
 				end = true;
-				diff = i;
+				diff = nested - i;
+				nested = i;
 				break;
 			}
 			tab += '\t';
 		}
-		
+
 		String trimedLine = line.trim();		
 		String[] temp = expr(trimedLine, variables, true);
 		
@@ -260,33 +255,27 @@ public class translator {
 			javaCode = tab + temp[0];
 			if (end) {
 				
-				System.out.println("nested: "+nested);
-				System.out.println("diff: "+diff);
-				System.out.println(nestedStack);
+				//System.out.println("nested: "+nested);
+				//System.out.println("diff: "+diff);
+				//System.out.println(nestedStack);
 				
-				javaCode = "} " + javaCode;
-				if (nested != diff) {
+				if (diff >= 1) {
 					javaCode = "} " + javaCode;
-					//nestedStack.remove(nested);
+					diff--;
+				}
+				while (diff >= 1) {
+					javaCode = "} " + javaCode;
+					diff--;
+					if (javaCode.contains("else if") || javaCode.contains("else {"))
+						nestedStack.remove(nested);
+					else nestedStack.remove(0);
+				}
+				
+				while (nestedStack.size() > nested) {
 					nestedStack.remove(0);
-					nested--;
 				}
+
 				match = "<nested_expr>: " + line + "\n";
-				Deque<String> tl = nestedStack.get(nested);
-				if (javaCode.contains("else if")) {
-					if (tl.contains("if")) nested++;
-					else {
-						javaCode = null;
-						match = "Error: missing if statement";
-					}
-				} else if (javaCode.contains("else")) {
-					if (tl.contains("if")) nested++;
-					else {
-						javaCode = null;
-						match = "Error: missing if statement";
-						tl.pop();
-					}
-				}
 			}
 		} else {
 			parsed[1] = temp[1];
@@ -314,16 +303,18 @@ public class translator {
 			head = "if";
 			ns = line.substring(3).trim();		
 		} else if (line.length() > 8 && line.substring(0, 8).equals("else if ")) {
-			if (nestedStack.isEmpty() || nestedStack.get(nested) == null 
-					|| !nestedStack.get(nested).peek().equals("if")) {
+			nested++;
+			if (nestedStack.isEmpty() || nestedStack.get(nested-1) == null 
+					|| !nestedStack.get(nested-1).equals("if")) {
 				parsed[1] = "Error: Mising if statement";
 				return parsed;
 			}
 			head = "else if";
 			ns = line.substring(8).trim();
 		} else if (line.length() == 4 && line.substring(0, 4).equals("else")) {
-			if (nestedStack.isEmpty() || nestedStack.get(nested) == null 
-					|| !nestedStack.get(nested).peek().equals("if")) {
+			nested++;
+			if (nestedStack.isEmpty() || nestedStack.get(nested-1) == null 
+					|| !nestedStack.get(nested-1).equals("if")) {
 				parsed[1] = "Error: Mising if statement";
 				return parsed;
 			}
@@ -343,11 +334,7 @@ public class translator {
 			match = "<if_stat>: " + line + "\n";
 			match += temp[1];
 			
-			if (head.equals("if")) {
-				Deque<String> tl = new ArrayDeque<String>();
-				tl.push("if");
-				nestedStack.add(tl);	
-			}
+			if (head.equals("if")) nestedStack.add("if");	
 		} else {
 			parsed[1] = temp[1];
 			return parsed;

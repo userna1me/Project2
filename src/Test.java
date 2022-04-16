@@ -19,13 +19,15 @@ public class Test {
 		} else {
 			System.out.println(2);
 		} 
-		} while ((a) == (b)) {
+		while ((a) == (b)) {
 			System.out.println(1);
 			System.out.println(2);
 			if ((a) == (b)) {
-		} } 	if ((5) == (1)) {
-			System.out.println(3);}
-
+			} 	
+			if ((5) == (1)) {
+				System.out.println(3);
+			}
+		}
 	}
 
 }
