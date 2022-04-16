@@ -4,55 +4,75 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Deque;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Scanner;
 
 public class translator {
 	private static HashMap<String, Object> globalVariables;
 	private static int nested = 0;
 	
-	private static ArrayList<Deque<String>> nestedStack;
+	private static ArrayList<String> nestedStack;
 	
+	@SuppressWarnings("resource")
 	public static void main(String args[]) {
 		// read input file, assuming args[0] is input filename
 		if (args[0] != null) {
 			ArrayList<String> fileContents = readFile(args[0]);
 			globalVariables = new HashMap<String, Object>();
-			nestedStack = new ArrayList<Deque<String>>();
-			
+			nestedStack = new ArrayList<String>();
 			// translate it
-			ArrayList<String> javaCode = compile(fileContents);
-			
-			// produce output file
-			// writeOutputFile(javaCode);
-			
+			ArrayList<String> javaCodes = compile(fileContents);
+			// output the code
+			printResult(javaCodes, args[0]);
 		// TODO interactive system? 
 		} else {
 			Scanner input = new Scanner(System.in);
+			System.out.print(">> ");
 			String cmd = input.nextLine();
 			while (!cmd.equals("exit")) {
 				parse(cmd);
-				
+				System.out.print(">> ");
 				cmd = input.nextLine();
 			}
 		}
+	}
+	
+	/**
+	 * Print out the translated java codes
+	 * 
+	 * @param codes
+	 * @param className
+	 */
+	private static void printResult(ArrayList<String> codes, String className) {
+		System.out.println("public class "+className+"{ ");
+		System.out.println();
+		System.out.println("\tpublic static void main(String[] args) {");
 		
+		// TODO command line
 		
+		for (String code: codes) {
+			System.out.print("\t\t");
+			System.out.println(code);
+		}
+		System.out.println("\t}\n\n}");
 	}
 	
 	/**
 	 * Parse a single input line from System.in
 	 * @param line
-	 * @return
 	 */
-	private static boolean parse(String line) {
+	private static void parse(String line) {
 		String[] parsed = expr(line, globalVariables, false);
-		
-		return false;
+		if (parsed[0] != null) {
+			System.out.println(parsed[0]);
+			System.out.println("+++++parsing process+++++");
+			System.out.print(parsed[1]);
+			System.out.println("+++++++++++++++++++++++++");
+		} else {
+			System.err.println(parsed[1]);
+		}
 	}
 	
 	private static ArrayList<String> compile(ArrayList<String> codes) {
@@ -73,27 +93,19 @@ public class translator {
 					System.err.print(temp[1]);
 					System.exit(1);
 				}
-				
-				System.out.println(javaCodes.get(i));
-				//System.out.println(nested);
-				System.out.println("------------");
-				System.out.print(explictParsing.get(i));
-				
 			} else {
 				javaCodes.add("//" + code.substring(1));
 				explictParsing.add("<commemt>: " + code + "\n");
 			}
 		}
-		if (nested != 0) {
+		while (nested != 0) {
 			String temp = javaCodes.get(javaCodes.size()-1);
 			temp += "}";
+			nested--;
 			javaCodes.remove(javaCodes.size()-1);
 			javaCodes.add(temp);
 		}
-		
-		System.out.println("+++");
-		for (String code: javaCodes) System.out.println(code);
-		
+		//writeOutputFile(explictParsing);
 		return javaCodes;
 	}
 	
@@ -103,31 +115,40 @@ public class translator {
 			if (nestedResult[0] != null) return nestedResult;
 		}
 		
-		String[] printResult = print(line, variables);
+		String[] printResult = print(line, variables);		
 		if (printResult[0] != null) return printResult;
 		
 		String[] varAssignResult = varAssign(line, variables);
 		if (varAssignResult[0] != null) return varAssignResult;
-
-		//String[] loopResult = loop(line, variables);
 		
 		String[] ifResult = ifStat(line, variables);		
 		if (ifResult[0] != null) return ifResult;
 		
-		return ifResult;
+		String[] loopResult = loop(line, variables);
+		if (loopResult[0] != null) return loopResult;
+		
+		String trimed = line.trim();
+		if (trimed.length() >= 5 && trimed.substring(0, 5).equals("print")) 
+			return printResult;
+		else if (trimed.length() >= 2 && trimed.substring(0, 3).equals("if")
+				|| trimed.length() >= 4 && trimed.substring(0, 4).equals("else"))
+			return ifResult;
+		else if (line.length() > 3 && line.substring(0, 4).equals("for")
+				|| line.length() > 5 && line.substring(0, 6).equals("while"))
+			return loopResult;
+		else if (line.length() > 3 && line.substring(0, 4).equals("var"))
+			return varAssignResult;
+		
+		String[] parsed = new String[2];
+		parsed[1] = "Error: In valid syntax";
+		return parsed;
 	}
 	
 	private static String checkVariable(String var, HashMap<String, Object> variables) {
 		if (variables.containsKey(var)) {
 			Object val = variables.get(var);
-			if (val == null) {
-				return "Error: "+var+" doesn't have a value";
-				//System.exit(1);
-			}
-		} else {
-			return "Error: "+var+" isn't declared";
-			//System.exit(1);
-		}
+			if (val == null) return "Error: "+var+" doesn't have a value";
+		} else return "Error: "+var+" isn't declared";
 		
 		return null;
 	}
@@ -137,9 +158,54 @@ public class translator {
 		String javaCode = null;
 		String match = null;
 		
-		if (line.substring(0, 4).equals("for ")) {
-		} else if (line.substring(0, 6).equals("while ")) {
+		line = line.trim();
+		String label = "";
+		if (line.length() > 4 && line.substring(0, 4).equals("for ")) {
+			nested++;
+			label = "for";
+			String var = line.substring(4).trim();
+			if (var.equals("true") || var.equals("false")) {
+				parsed[1] = "Error: invalid for loop condition";
+				return parsed;
+			}
+			
+			String[] temp = var(var);
+			if (temp[0] != null) {
+				if (temp[1].contains("<string>")) {
+					String str = checkVariable(var, variables);
+					if (str != null) {
+						parsed[1] = str;
+						return parsed;
+					} else {
+						Object val = variables.get(var);
+						if (num(val.toString())[0] == null) {
+							parsed[1] = "Error: "+var+" is not a number";
+							return parsed;
+						}
+					}
+				}
+				match = "<loop>: " + line + "\n";
+				match += temp[1];
+				javaCode = "for (int i = 0; i < ("+temp[0] + "); i++) {";
+			} else {
+				parsed[1] = temp[1];
+				return parsed;
+			}			
+		} else if (line.length() > 6 && line.substring(0, 6).equals("while ")) {
+			nested++;
+			label = "while";	
+			String[] temp = boolExpr(line.substring(6).trim(), variables);
+			if (temp[0] != null) {
+				javaCode = "while (" + temp[0] + ") {";
+				match = "<loop>: " + line;
+				match += temp[1];
+			} else match = temp[1];		
+		} else {
+			parsed[1] = "Error: invalid loop statement";
+			return parsed;
 		}
+		
+		if (javaCode != null) nestedStack.add(label);
 
 		parsed[0] = javaCode;
 		parsed[1] = match;
@@ -155,40 +221,45 @@ public class translator {
 
 		String tab = "";
 		boolean end = false;
+		int diff = 0;
 		for (int i = 0; i < nested; i++) {
 			if (line.charAt(i) != '\t') {
-				if (i == nested - 1) {
-					nested--;
-					end = true;
-					break;
-				} ;
+				end = true;
+				diff = nested - i;
+				nested = i;
+				break;
 			}
 			tab += '\t';
 		}
-		
+
 		String trimedLine = line.trim();		
 		String[] temp = expr(trimedLine, variables, true);
 		
 		if (temp[0] != null) {			
 			javaCode = tab + temp[0];
 			if (end) {
-				javaCode = "} " + javaCode;
-				match = "<nested_expr>: " + line + "\n";
-				Deque<String> tl = nestedStack.get(nested);
-				if (javaCode.contains("else if")) {
-					if (tl.contains("if")) nested++;
-					else {
-						javaCode = null;
-						match = "Error: missing if statement";
-					}
-				} else if (javaCode.contains("else")) {
-					if (tl.contains("if")) nested++;
-					else {
-						javaCode = null;
-						match = "Error: missing if statement";
-						tl.pop();
-					}
+				
+				//System.out.println("nested: "+nested);
+				//System.out.println("diff: "+diff);
+				//System.out.println(nestedStack);
+				
+				if (diff >= 1) {
+					javaCode = "} " + javaCode;
+					diff--;
 				}
+				while (diff >= 1) {
+					javaCode = "} " + javaCode;
+					diff--;
+					if (javaCode.contains("else if") || javaCode.contains("else {"))
+						nestedStack.remove(nested);
+					else nestedStack.remove(0);
+				}
+				
+				while (nestedStack.size() > nested) {
+					nestedStack.remove(0);
+				}
+
+				match = "<nested_expr>: " + line + "\n";
 			}
 		} else {
 			parsed[1] = temp[1];
@@ -214,21 +285,20 @@ public class translator {
 		if (line.length() > 3 && line.substring(0, 3).equals("if ")) {			
 			nested++;
 			head = "if";
-			ns = line.substring(3).trim();
-			Deque<String> tl = new ArrayDeque<String>();
-			tl.push("if");
-			nestedStack.add(tl);			
+			ns = line.substring(3).trim();		
 		} else if (line.length() > 8 && line.substring(0, 8).equals("else if ")) {
-			if (nestedStack.isEmpty() || nestedStack.get(nested) == null 
-					|| !nestedStack.get(nested).peek().equals("if")) {
+			nested++;
+			if (nestedStack.isEmpty() || nestedStack.get(nested-1) == null 
+					|| !nestedStack.get(nested-1).equals("if")) {
 				parsed[1] = "Error: Mising if statement";
 				return parsed;
 			}
 			head = "else if";
 			ns = line.substring(8).trim();
 		} else if (line.length() == 4 && line.substring(0, 4).equals("else")) {
-			if (nestedStack.isEmpty() || nestedStack.get(nested) == null 
-					|| !nestedStack.get(nested).peek().equals("if")) {
+			nested++;
+			if (nestedStack.isEmpty() || nestedStack.get(nested-1) == null 
+					|| !nestedStack.get(nested-1).equals("if")) {
 				parsed[1] = "Error: Mising if statement";
 				return parsed;
 			}
@@ -243,11 +313,12 @@ public class translator {
 		}
 		
 		temp = boolExpr(ns, variables);
-		
 		if (temp[0] != null) {
 			javaCode = head + " (" + temp[0] + ") {";
 			match = "<if_stat>: " + line + "\n";
 			match += temp[1];
+			
+			if (head.equals("if")) nestedStack.add("if");	
 		} else {
 			parsed[1] = temp[1];
 			return parsed;
@@ -319,6 +390,8 @@ public class translator {
 					else match = boolTemp[1];
 				}
 			}
+		} else {
+			match = "Error: invalid print statement";
 		}
 		
 		parsed[0] = javaCode;
@@ -605,7 +678,6 @@ public class translator {
 			if (temp[0] == null) {
 				parsed[1] = temp[1];
 				return parsed;
-				//System.exit(1);
 			}
 			if (temp[1].contains("<string>")) checkVariable(line, variables);
 			javaCode = temp[0];
@@ -631,6 +703,11 @@ public class translator {
 		// TODO add variables to globalVariables
 		// TODO? if theres a space between (var ) and " is ", then its a multiple-var assignment 
 		
+		if (!line.contains(" is ")) {
+			result[1] = "Error: invalid variable assignment";
+			return result;
+		}
+		
 		if (line.substring(0,4).equals("var ")) {	// if variable declaration
 			int i = 4;
 			while( ! line.substring(i,i+4).equals(" is ")) {
@@ -649,6 +726,9 @@ public class translator {
 			}
 			
 			String[] statementParse = resolveStatement(assignment);
+			
+			System.out.println(line);
+			
 			if (statementParse[0] == null) {
 				javaStatement = null;
 				result[1] = statementParse[1];
@@ -678,153 +758,136 @@ public class translator {
 			}
 			result[0] = javaStatement;
 		}
+		
 		return result;
-	}
-	
-	/**
-	 * resolves the statement into an array of two strings:
-	 * 		1. the return type of the statement
-	 * 		2. the statement 
-	 * In the case of an error: returns [null, error message]
-	 * @param statement (in our language) like "46" or "x + 52" or "false"
-	 * @return [return type (or null), return value] in java
-	 */
-	private static String[] resolveStatement(String statement) {
-		statement.trim();
-		String[] result = new String[2];
-		int len = statement.length();
-		int strMathLoc = strContainsMath(statement);
-		// if statement is Not an equation
-		if (strMathLoc == -1) {	
-			if (Character.isDigit(statement.charAt(0))) {
-				// if number
-				try {
-					Integer.parseInt(statement);
-					result[0] = "int";
-					result[1] = statement;
-					return result;
-				} catch(Exception e) {}
-				try {
-					Double.parseDouble(statement);
-					result[0] = "double";
-					result[1] = statement;
-					return result;
-				} catch(Exception e) {
-					result[0] = null;
-					result[1] = "Invalid variable assignment - number cannot be parsed.";
-				}
-			} else if (statement.charAt(0) == '"' && statement.charAt(len-1) == '"') {
-				// if string
-				result[0] = "String";
-				result[1] = statement;
-			} else if (statement.equals("true") || statement.equals("false")) {
-				// if bool
-				result[0] = "boolean";
-				result[1] = statement;
-			} else if (globalVariables.containsKey(statement)) {
-				// if existing var
-				Object value = globalVariables.get(statement);
-				String type = value.getClass().getCanonicalName();
-				if (type.equals("Integer"))
-					result[0] = "int";
-				else if (type.equals("Boolean"))
-					result[0] = "boolean";
-				else if (type.equals("Double"))
-					result[0] = "double";
-				else
-					result[0] = type;
-				result[1] = statement;
-			} else {
-				// else unknown
-				result[0] = null;
-				result[1] = "Invalid variable assignment.";
-			}
-		} else {	// if statement is an equation
-			if (statement.charAt(strMathLoc) == '=') {
-				// boolean exception
-				result[0] = "boolean";
-				result[1] = statement;
-				return result;
-			}
-			String part1 = statement.substring(0, strMathLoc);
-			String operator = statement.substring(strMathLoc, strMathLoc+1);
-			String part2 = statement.substring(strMathLoc + 1);
-			part1 = part1.trim();
-			part2 = part2.trim();
-			String[] part1info = resolveStatement(part2);
-			String[] part2info = resolveStatement(part2);
-			
-			if (part1.equals("")) {
-				if (part2info[0] == null) {
-					result[0] = null;
-					result[1] = "Invalid assignment equation. here";
-					return result;
-				} else {
-					result[0] = part2info[0];
-					result[1] = statement;
-					return result;
-				}
-			}
-			
-			if (part1info[0] == null || part2info == null) {
-				result[0] = null;
-				result[1] = "Invalid assignment equation.";
-				return result;
-			} else if (part1info[0].equals(part2info[0])) {
-				result[0] = part1info[0];
-				result[1] = statement;
-			} else {
-				result[0] = null;
-				result[1] = "Invalid assignment equation. Equation cannot be resolved.";
-			}
 		}
-		return result;
-	}
 	
-	/**
-	 * Helper for varAssign - determines index of the first math operator in the given string,
-	 * or returns -1 if none found.
-	 */
-	private static int strContainsMath(String line) {
-		for (int i = 0; i < line.length()-1; i++)
-			if (line.charAt(i) == '+'
-					|| line.charAt(i) == '-'
-					|| line.charAt(i) == '/'
-					|| line.charAt(i) == '*'
-					|| line.charAt(i) == '=' && line.charAt(i+i) == '=')
-				return i;
-		return -1;
-	}
-	
-	/**
-	 * Removes the comment (everything after #) from a line
-	 * @param line
-	 * @return
-	 */
-	private static String removeComment(String line) {
-		for (int i = 0; i < line.length(); i++)
-			if (line.charAt(i) == '#')
-				return line.substring(0,i);
-		return line;
-	}
-	
-	private static boolean varList(String line) {
+		/**
+		 * resolves the statement into an array of two strings:
+		 * 		1. the return type of the statement
+		 * 		2. the statement 
+		 * In the case of an error: returns [null, error message]
+		 * @param statement (in our language) like "46" or "x + 52" or "false"
+		 * @return [return type (or null), return value] in java
+		 */
+		private static String[] resolveStatement(String statement) {
+			statement.trim();
+			String[] result = new String[2];
+			int len = statement.length();
+			int strMathLoc = strContainsMath(statement);
+			// if statement is Not an equation
+			if (strMathLoc == -1) {	
+				if (Character.isDigit(statement.charAt(0))) {
+					// if number
+					try {
+						Integer.parseInt(statement);
+						result[0] = "int";
+						result[1] = statement;
+						return result;
+					} catch(Exception e) {}
+					try {
+						Double.parseDouble(statement);
+						result[0] = "double";
+						result[1] = statement;
+						return result;
+					} catch(Exception e) {
+						result[0] = null;
+						result[1] = "Invalid variable assignment - number cannot be parsed.";
+					}
+				} else if (statement.charAt(0) == '"' && statement.charAt(len-1) == '"') {
+					// if string
+					result[0] = "String";
+					result[1] = statement;
+				} else if (statement.equals("true") || statement.equals("false")) {
+					// if bool
+					result[0] = "boolean";
+					result[1] = statement;
+				} else if (globalVariables.containsKey(statement)) {
+					// if existing var
+					Object value = globalVariables.get(statement);
+					String type = value.getClass().getCanonicalName();
+					if (type.equals("Integer"))
+						result[0] = "int";
+					else if (type.equals("Boolean"))
+						result[0] = "boolean";
+					else if (type.equals("Double"))
+						result[0] = "double";
+					else
+						result[0] = type;
+					result[1] = statement;
+				} else {
+					// else unknown
+					result[0] = null;
+					result[1] = "Invalid variable assignment.";
+				}
+			} else {	// if statement is an equation
+				if (statement.charAt(strMathLoc) == '=') {
+					// boolean exception
+					result[0] = "boolean";
+					result[1] = statement;
+					return result;
+				}
+				String part1 = statement.substring(0, strMathLoc);
+				String operator = statement.substring(strMathLoc, strMathLoc+1);
+				String part2 = statement.substring(strMathLoc + 1);
+				part1 = part1.trim();
+				part2 = part2.trim();
+				String[] part1info = resolveStatement(part2);
+				String[] part2info = resolveStatement(part2);
+				
+				if (part1.equals("")) {
+					if (part2info[0] == null) {
+						result[0] = null;
+						result[1] = "Invalid assignment equation. here";
+						return result;
+					} else {
+						result[0] = part2info[0];
+						result[1] = statement;
+						return result;
+					}
+				}
+				
+				if (part1info[0] == null || part2info == null) {
+					result[0] = null;
+					result[1] = "Invalid assignment equation.";
+					return result;
+				} else if (part1info[0].equals(part2info[0])) {
+					result[0] = part1info[0];
+					result[1] = statement;
+				} else {
+					result[0] = null;
+					result[1] = "Invalid assignment equation. Equation cannot be resolved.";
+				}
+			}
+			return result;
+		}
 		
+		/**
+		 * Helper for varAssign - determines index of the first math operator in the given string,
+		 * or returns -1 if none found.
+		 */
+		private static int strContainsMath(String line) {
+			for (int i = 0; i < line.length()-1; i++)
+				if (line.charAt(i) == '+'
+						|| line.charAt(i) == '-'
+						|| line.charAt(i) == '/'
+						|| line.charAt(i) == '*'
+						|| line.charAt(i) == '=' && line.charAt(i+i) == '=')
+					return i;
+			return -1;
+		}
 		
-		return false;
-	}
-	
-	private static boolean valList(String line) {
-		
-		
-		return false;
-	}
-	
-	private static boolean val(String line) {
-		
-		
-		return false;
-	}
+		/**
+		 * Removes the comment (everything after #) from a line
+		 * @param line
+		 * @return
+		 */
+		private static String removeComment(String line) {
+			for (int i = 0; i < line.length(); i++)
+				if (line.charAt(i) == '#')
+					return line.substring(0,i);
+			return line;
+		}
 	
 	/**
 	 * <var>
@@ -834,9 +897,7 @@ public class translator {
 		String javaCode = null;
 		String match = null;
 		String var = line.trim();
-		
-		// TODO simplify code
-		
+
 		// <bool>
 		String[] boolTemp = bool(var);
 		if (boolTemp[0] != null) {
@@ -847,7 +908,6 @@ public class translator {
 			parsed[1] = match;
 			return parsed;
 		}
-		
 		// <num>
 		String[] numTemp = num(var);
 		if (numTemp[0] != null) {
@@ -899,7 +959,6 @@ public class translator {
 		if (!Character.isLetter(var.charAt(0))) {
 			match = "Error: "+var+" is not a valid variable name, "
 					+ "valid variable name has to start with a letter";
-			//System.exit(1);
 			parsed[1] = match;
 			return parsed;
 		} 
@@ -910,11 +969,19 @@ public class translator {
 			else {
 				match = "Error: "+var+" is not a valid variable name, "
 						+ "valid variable name only contains letter, digit and _";
-				//System.exit(1);
 				parsed[1] = match;
 				return parsed;
 			}
 		}
+		
+		HashSet<String> label = new HashSet<String>();
+		label.add("if"); label.add("else"); label.add("for"); label.add("while");
+		label.add("true"); label.add("false");label.add("var"); label.add("is");
+		if (label.contains(var)) {
+			parsed[1] = "Error: variable name can't be" + var + "\n";
+			return parsed;
+		}
+		
 		javaCode = var;
 		match = "<string>: " + var + "\n";
 		
