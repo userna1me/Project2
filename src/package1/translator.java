@@ -867,13 +867,14 @@ public class translator {
 		 * or returns -1 if none found.
 		 */
 		private static int strContainsMath(String line) {
-			for (int i = 0; i < line.length()-1; i++)
-				if (line.charAt(i) == '+'
+			for (int i = 0; i < line.length()-1; i++) {
+				if ( line.charAt(i) == '+'
 						|| line.charAt(i) == '-'
 						|| line.charAt(i) == '/'
 						|| line.charAt(i) == '*'
-						|| line.charAt(i) == '=' && line.charAt(i+i) == '=')
+						|| line.substring(i,i+2).equals("=="))
 					return i;
+			}
 			return -1;
 		}
 		
