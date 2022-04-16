@@ -1,0 +1,15 @@
+var f1 is 0
+var f2 is 1
+
+if arg == 0
+	print f1
+else if arg == 1
+	print f2
+else 
+	var temp is arg - 2
+	var result is 0
+	for temp
+		result is f1 + f2
+		f1 is f2
+		f2 is result
+	print result
