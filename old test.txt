@@ -13,6 +13,7 @@ else if c == d
 else
 	print 2
 print 4
+
 # print 123
 # print 123.0123
 # print .213
@@ -22,5 +23,3 @@ print 4
 # print false
 # print "abcde"
 # print 1 == 2 and 3 == 4 and 5 == 6
-
-
