@@ -1,33 +1,25 @@
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-
 public class Test {
 
 	public static void main(String[] args) {
-		int a = 0;
-		int b = 1;
-		int c = 2;
-		int d = 3;
+		int arg = (int) Double.parseDouble(args[0]);
 		
-		if ((a) == (b)) {
-			System.out.println(1);
-			if ((a) != (b)) {
-				System.out.println(4);
-			} 
-		} else if ((c) == (d)) {
+		int f1 = 0;
+		int f2 = 1;
+		if ((arg) == (0)) {
+			System.out.println(f1);
+		} else if ((arg) == (1)) {
+			System.out.println(f2);
 		} else {
-			System.out.println(2);
-		} 
-		while ((a) == (b)) {
-			System.out.println(1);
-			System.out.println(2);
-			if ((a) == (b)) {
-			} 	
-			if ((5) == (1)) {
-				System.out.println(3);
-			}
-		}
+			int temp = arg - 2;
+			int result = 0;
+			for (int i = 0; i < (temp); i++) {
+				java.lang.String result = f1 + f2;
+				java.lang.String f1 = f2;
+				java.lang.String f2 = result;
+		} 	
+		System.out.println(result);}
+
+
 	}
 
 }

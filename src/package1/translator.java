@@ -49,9 +49,19 @@ public class translator {
 		System.out.println("public class "+className+"{ ");
 		System.out.println();
 		System.out.println("\tpublic static void main(String[] args) {");
-		
-		// TODO command line
-		
+		// can only take one command line input, stroe in arg
+		System.out.println("\t\tObject arg;");
+		System.out.println("\t\tif (args.length > 0) {");
+		System.out.println("\t\t\tif (args[0].equals(\"true\")) {arg = true;}");
+		System.out.println("\t\t\telse if (args[0].equals(\"false\")) {arg = false;}");
+		System.out.println("\t\t\telse {");
+		System.out.println("\t\t\t\ttry {");
+		System.out.println("\t\t\t\t\tdouble num = Double.parseDouble(args[0]);");
+		System.out.println("\t\t\t\t\tif (Math.ceil(num) == Math.floor(num)) {");
+		System.out.println("\t\t\t\t\t\targ = (int) num;");
+		System.out.println("\t\t\t\t\t} else {arg = num;}");
+		System.out.println("\t\t\t\t} catch (NumberFormatException e) {");
+		System.out.println("\t\t\t\t\targ = args[0];}}}");
 		for (String code: codes) {
 			System.out.print("\t\t");
 			System.out.println(code);
@@ -88,6 +98,10 @@ public class translator {
 				if (temp[0] != null) {
 					javaCodes.add(temp[0]);
 					explictParsing.add(temp[1]);
+					
+					//System.out.println(temp[0]);
+					//System.out.println(globalVariables);
+					
 				} else {
 					System.err.print("[At line " + (i+1) +"] ");
 					System.err.print(temp[1]);
@@ -178,7 +192,10 @@ public class translator {
 						return parsed;
 					} else {
 						Object val = variables.get(var);
-						if (num(val.toString())[0] == null) {
+						if (val instanceof String && ((String) val).contains(" ") && 
+								!((String) val).contains("\""))
+							{}
+						else if (num(val.toString())[0] == null) {
 							parsed[1] = "Error: "+var+" is not a number";
 							return parsed;
 						}
@@ -715,7 +732,7 @@ public class translator {
 			}
 			String varName = line.substring(4,i);		// split into var name and var assignment
 			String assignment = line.substring(i+4);
-			
+
 			//check variables
 			if (variables.containsKey(varName)) {
 				result[0] = null;
@@ -725,10 +742,10 @@ public class translator {
 				variables.put(varName, assignment);  // (x : x + y)
 			}
 			
+			System.out.println(globalVariables);
+			
 			String[] statementParse = resolveStatement(assignment);
-			
-			System.out.println(line);
-			
+
 			if (statementParse[0] == null) {
 				javaStatement = null;
 				result[1] = statementParse[1];
@@ -758,7 +775,7 @@ public class translator {
 			}
 			result[0] = javaStatement;
 		}
-		
+
 		return result;
 		}
 	
@@ -867,13 +884,14 @@ public class translator {
 		 * or returns -1 if none found.
 		 */
 		private static int strContainsMath(String line) {
-			for (int i = 0; i < line.length()-1; i++)
-				if (line.charAt(i) == '+'
+			for (int i = 0; i < line.length()-1; i++) {
+				if ( line.charAt(i) == '+'
 						|| line.charAt(i) == '-'
 						|| line.charAt(i) == '/'
 						|| line.charAt(i) == '*'
-						|| line.charAt(i) == '=' && line.charAt(i+i) == '=')
+						|| line.substring(i,i+2).equals("=="))
 					return i;
+			}
 			return -1;
 		}
 		
