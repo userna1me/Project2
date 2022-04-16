@@ -873,6 +873,7 @@ public class translator {
 						|| line.charAt(i) == '-'
 						|| line.charAt(i) == '/'
 						|| line.charAt(i) == '*'
+						|| line.charAt(i) == '%'
 						|| line.substring(i,i+2).equals("=="))
 					return i;
 			}

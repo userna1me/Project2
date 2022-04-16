@@ -1,0 +1,41 @@
+>> # checks if a given number is prime
+<commemt>: # checks if a given number is prime
+>> # takes number from command line argument
+<commemt>: # takes number from command line argument
+>> # prints true or false
+<commemt>: # prints true or false
+>> var counter is 2
+<var_assign>: var counter is 2
+<var>: counter<type>: int
+<val>: 2
+>> var remainder is 0
+<var_assign>: var remainder is 0
+<var>: remainder<type>: int
+<val>: 0
+>> var result is true
+<var_assign>: var result is true
+<var>: result<type>: boolean
+<val>: true
+>> while counter <= arg / 2
+<loop>: while counter <= arg / 2<bool_expr>: counter <= arg / 2
+<bool_expr1>: counter <= arg / 2
+<bool_expr2>: counter <= arg / 2
+<bool_expr2>: counter
+<bool_base>: counter
+<var>: counter
+<string>: counter
+<bool_base>: arg / 2
+<var>: arg / 2
+<string>: arg / 2
+>> 	remainder is arg % counter
+null
+>> 	if remainder != 0
+null
+>> 		counter is + 1
+null
+>> 	else
+<nested_expr>: 	else
+>> 		result is false
+null
+>> print result
+<nested_expr>: print result
