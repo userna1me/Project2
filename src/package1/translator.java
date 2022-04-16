@@ -753,7 +753,8 @@ public class translator {
 				if (statementParse[1].charAt(0) == '/') {
 					javaStatement = varName + " " + statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
 				} else {
-					javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+//					javaStatement = statementParse[0] + " " + varName + " = " + statementParse[1] + ";";
+					javaStatement = varName + " = " + statementParse[1] + ";";
 				}
 			}
 			result[0] = javaStatement;
@@ -804,16 +805,19 @@ public class translator {
 					result[1] = statement;
 				} else if (globalVariables.containsKey(statement)) {
 					// if existing var
-					Object value = globalVariables.get(statement);
-					String type = value.getClass().getCanonicalName();
-					if (type.equals("Integer"))
-						result[0] = "int";
-					else if (type.equals("Boolean"))
-						result[0] = "boolean";
-					else if (type.equals("Double"))
-						result[0] = "double";
-					else
-						result[0] = type;
+//					Object value = globalVariables.get(statement);
+//					String type = value.getClass().getCanonicalName();
+//					if (type.equals("Integer"))
+//						result[0] = "int";
+//					else if (type.equals("Boolean"))
+//						result[0] = "boolean";
+//					else if (type.equals("Double"))
+//						result[0] = "double";
+//					else if (type.equals("String"))
+//						result[0] = "String";
+//					else
+//						//result[0] = type;
+						result[0] = "";
 					result[1] = statement;
 				} else {
 					// else unknown

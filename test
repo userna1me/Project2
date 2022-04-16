@@ -1,6 +1,7 @@
-var a is 5
-var b is true
-var c is "abc"
-var d is z + 1
-var e is a == b
-a is + 3
+var result is 1
+var f1 is 2
+var f2 is 3
+
+result is f1 + f2
+f1 is f2
+f2 is result
