@@ -778,6 +778,16 @@ public class Translator {
 			}
 			String varName = line.substring(4,i);		// split into var name and var assignment
 			String assignment = line.substring(i+4);
+//			assignment = assignment.trim();
+			// arg assignment exception
+			if (assignment.equals("arg") || assignment.equals("arg1")
+					||  assignment.equals("arg2") || assignment.equals("arg3")) {
+				result[0] = "int " + varName + " = " + assignment + ";"; 
+				result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"\n<type>: int\n<val>: "+assignment+"\n";;
+				variables.put(varName, variables.get(assignment));
+//				variables.put(varName, 0);
+				return result;
+			}
 			//check variables
 			if (variables.containsKey(varName)) {
 				result[0] = null;
@@ -803,7 +813,16 @@ public class Translator {
 				i++;
 			}
 			String varName = line.substring(0,i);		// split into var name and var assignment
-			String assignment = line.substring(i+4);			
+			String assignment = line.substring(i+4);
+			// arg assignment exception
+			if (assignment.equals("arg") || assignment.equals("arg1")
+					||  assignment.equals("arg2") || assignment.equals("arg3")) {
+				result[0] = varName + " = " + assignment + ";"; 
+				result[1] = "<var_assign>: "+line+"\n<var>: "+varName+"\n<type>: int\n<val>: "+assignment+"\n";;
+				variables.put(varName, variables.get(assignment));
+//				variables.put(varName, 0);
+				return result;
+			}
 			String[] statementParse = resolveStatement(assignment);
 			if (statementParse[0] == null) {
 				javaStatement = null;
