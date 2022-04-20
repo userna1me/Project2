@@ -1,51 +1,45 @@
->> # checks if a given number is prime
-<commemt>: # checks if a given number is prime
->> # takes number from command line argument
-<commemt>: # takes number from command line argument
->> # prints true or false
-<commemt>: # prints true or false
->> var counter is 2
-<var_assign>: var counter is 2
-<var>: counter
+>> var f1 is 0
+<var_assign>: var f1 is 0
+<var>: f1
 <type>: int
-<val>: 2
->> var remainder is 1
-<var_assign>: var remainder is 1
-<var>: remainder
+<val>: 0
+>> var f2 is 1
+<var_assign>: var f2 is 1
+<var>: f2
 <type>: int
 <val>: 1
->> var result is true
-<var_assign>: var result is true
-<var>: result
-<type>: boolean
-<val>: true
->> while counter <= arg / 2 and result 
-<loop>: while counter <= arg / 2 and result<bool_expr>: counter <= arg / 2 and result
-<bool_expr1>: counter <= arg / 2 and result
-<bool_expr>: counter <= arg / 2
-<bool_expr1>: counter <= arg / 2
-<bool_expr2>: counter <= arg / 2
-<bool_expr2>: counter
-<bool_base>: counter
-<var>: counter
-<string>: counter
-<bool_base>: arg / 2
-<var>: arg / 2
-<string>: arg / 2
-<bool_expr1>: result
-<bool_expr2>: result
-<bool_base>: result
-<var>: result
-<string>: result
->> 	remainder is arg % counter
+>> if arg == 1
+<if_stat>: if arg == 1
+<bool_expr>: arg == 1
+<bool_expr1>: arg == 1
+<bool_expr2>: arg == 1
+<bool_expr2>: arg
+<bool_base>: arg
+<var>: arg
+<string>: arg
+<bool_base>: 1
+<var>: 1
+<num>: 1
+<int>: 1
+>> 	print f1
 null
->> 	if remainder != 0
+>> else if arg == 2
+<nested_expr>: else if arg == 2
+>> 	print f2
 null
->> 		counter is + 1
+>> else 
+<nested_expr>: else 
+>> 	var temp is arg - 2
 null
->> 	else
-<nested_expr>: 	else
->> 		result is false
+>> 	var result is 0
 null
->> print result
-<nested_expr>: print result
+>> 	for temp
+null
+>> 		result is f1 + f2
+null
+>> 		f1 is f2
+null
+>> 		f2 is result
+null
+>> 	print result
+<nested_expr>: 	print result
