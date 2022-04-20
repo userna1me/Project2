@@ -1,0 +1,11 @@
+# Collatz's Conjecture Generator.
+# For a given number: if it's even, divide it by two, and if it's odd, multiply it by three and one.
+# Collatz's conjecture: any number will eventually lead to 1.
+
+while arg > 1
+	print arg
+	if arg % 2 == 0
+		arg is 3 * arg + 1
+	else
+		arg is / 2
+print arg

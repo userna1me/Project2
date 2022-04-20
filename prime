@@ -1,0 +1,16 @@
+# checks if a given number is prime
+# takes number from command line argument
+# prints true or false
+
+var counter is 2
+var remainder is 1
+var result is true
+
+while counter <= arg / 2 and result 
+	remainder is arg % counter
+	if remainder != 0
+		counter is + 1
+	else
+		result is false
+	
+print result
